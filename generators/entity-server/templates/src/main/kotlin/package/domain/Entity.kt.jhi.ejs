@@ -123,7 +123,7 @@ data class <%= persistClass %>(
 
 <&- fragments.classAdditionalRelationshipsSection() -&>
     // jhipster-needle-entity-add-field - JHipster will add fields here
-) : <&- fragments.extendsSection() -&> Serializable<&- fragments.additionalInterfacesSection() -&> {
+) : <&- fragments.extendsSection() -&> Serializable<&- fragments.additionalInterfacesSection() -&>, AbstractAuditingEntity() {
 
   <%_
     // An embedded entity should not reference entities that embed it, unless the other entities are also embedded

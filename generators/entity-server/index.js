@@ -29,6 +29,7 @@ module.exports = class extends EntityServerGenerator {
             this.error(`This is a JHipster blueprint and should be used only like ${chalk.yellow('jhipster --blueprint kotlin')}`);
         }
 
+        options["context"] = options["context"] || ''
         this.loadAppConfig();
         this.loadDerivedAppConfig();
         this.loadServerConfig();

@@ -11,6 +11,19 @@ const getPath = pathName => {
 };
 
 const makeKotlinServerFiles = function (files) {
+    // add custom files
+    const extraDTOs = [{
+        file: 'package/service/dto/CreateEntityDTO.java',
+            renameTo: generator => `${generator.entityAbsoluteFolder}/service/dto/Create${generator.asDto(generator.entityClass)}.java`,
+    },
+    {
+        file: 'package/service/mapper/CreateEntityMapper.java',
+            renameTo: generator => `${generator.entityAbsoluteFolder}/service/mapper/Create${generator.entityClass}Mapper.java`,
+    }]
+    console.log(files["dtoFiles"])
+    console.log(files["dtoFiles"][0].templates)
+    files["dtoFiles"][0].templates.push(...extraDTOs)
+    console.log(files["dtoFiles"][0].templates)
     const keys = Object.keys(files);
     const out = {};
 
@@ -30,13 +43,13 @@ const makeKotlinServerFiles = function (files) {
                             return {
                                 ...template,
                                 file: templateName,
-                                renameTo: template.renameTo ? generator => template.renameTo(generator).replace('.java', '.kt') : null,
+                                renameTo: template.renameTo ? generator => template.renameTo(generator).replace(generator.entityAbsoluteFolder, generator.entityAbsoluteFolder + "/" + generator.module).replace('.java', '.kt') : null,
                             };
                         }
                         return {
                             ...template,
                             file: generator => template.file(generator).replace('.java', '.kt'),
-                            renameTo: template.renameTo ? generator => template.renameTo(generator).replace('.java', '.kt') : null,
+                            renameTo: template.renameTo ? generator => template.renameTo(generator).replace(generator.entityAbsoluteFolder, generator.entityAbsoluteFolder + "/" + generator.module).replace('.java', '.kt') : null,
                         };
                     }
                     return template;
