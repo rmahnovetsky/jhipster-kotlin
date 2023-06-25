@@ -29,7 +29,7 @@ _%>
         criteria: <%= entityClass %>Criteria<% if (pagination != 'no') { %>,
         @org.springdoc.api.annotations.ParameterObject pageable: Pageable
         <% if (reactive) { %>, request: ServerHttpRequest<% } %><% } %>
-    ): ResponseEntity<MutableList<<%= instanceClass %>>> {
+    ): ResponseEntity<List<<%= instanceClass %>>> {
         log.debug("REST request to get <%= entityClassPlural %> by criteria: $criteria")
     <%_ if (paginationNo) { _%>
         val entityList = <%= entityInstance %>QueryService.findByCriteria(criteria)
@@ -54,7 +54,7 @@ _%>
     }
 <% } else { %>
     <%_ if (paginationNo) { _%>
-    fun getAll<%= entityClassPlural %>(<% if (fieldsContainNoOwnerOneToOne) { %>@RequestParam(required = false) filter: String?<% } %><% if (implementsEagerLoadApis && fieldsContainNoOwnerOneToOne) { %>,<% } %><% if (implementsEagerLoadApis) { %>@RequestParam(required = false, defaultValue = "false") eagerload: Boolean<% }%>): <% if (reactive) { %>Mono<<% } %>MutableList<<%= instanceClass %>><% if (reactive) { %>><% } %> {
+    fun getAll<%= entityClassPlural %>(<% if (fieldsContainNoOwnerOneToOne) { %>@RequestParam(required = false) filter: String?<% } %><% if (implementsEagerLoadApis && fieldsContainNoOwnerOneToOne) { %>,<% } %><% if (implementsEagerLoadApis) { %>@RequestParam(required = false, defaultValue = "false") eagerload: Boolean<% }%>): <% if (reactive) { %>Mono<<% } %>List<<%= instanceClass %>><% if (reactive) { %>><% } %> {
 
         <%- include('get_all_stream_template', {viaService: viaService}); -%>
 

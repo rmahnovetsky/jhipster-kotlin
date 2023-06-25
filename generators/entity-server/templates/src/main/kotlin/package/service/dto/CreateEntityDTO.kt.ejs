@@ -16,7 +16,7 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -%>
-package <%= entityAbsolutePackage %>.service.dto
+package <%= entityAbsolutePackage %>.<%= module %>.service.dto
 
 import java.util.Objects
 <%_ if (typeof javadoc !== 'undefined' || importApiModelProperty) { _%>
@@ -59,7 +59,7 @@ import <%= `${otherEntity.entityAbsolutePackage}.service.dto.${otherEntity.dtoCl
 <%_ } _%>
 
 /**
- * A DTO for the [<%= entityAbsolutePackage %>.domain.<%= persistClass %>] entity.
+ * A Create DTO for the [<%= entityAbsolutePackage %>.domain.<%= persistClass %>] entity.
  */
 <%_ if (typeof javadoc !== 'undefined') { _%>
 @Schema(description = "<%- formatAsApiDescription(javadoc) %>")
@@ -94,7 +94,7 @@ data class Create<%= dtoClass %>(
             } else if (reference.collection && reference.relationship) {
                 property = `var ${reference.name}: MutableSet<${asDto(reference.relationship.otherEntity.entityNameCapitalized)}> = mutableSetOf()`;
             } else if (reference.relationship) {
-                property = `var ${reference.name}: ${asDto(reference.relationship.otherEntity.entityNameCapitalized)}? = null`;
+                property = `var ${reference.name}Id: Long? = null`;
             } else if (reference.type === 'byte[]') {
                 property = `var ${reference.name}: ByteArray? = null`;
             } else if (reference.type === 'Integer') {
@@ -114,28 +114,4 @@ data class Create<%= dtoClass %>(
     _%>
 
     <%- entityClassProperties.join(',\n\n    ') %>
-) : Serializable {
-
-    <%_ const idNames = primaryKey ? [...primaryKey.fields.map(f => f.fieldName)] : [] _%>
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is <%= dtoClass %>) return false
-        <%_ if (!embedded) { _%>
-        val <%= dtoInstance %> = other
-        if (<%- idNames.map(n => `this.${n} == null`).join(' && ') %>){
-            return false;
-        }
-        return <%- idNames.map(n => `Objects.equals(this.${n}, ${dtoInstance}.${n})`).join(' &&\n            ') %>;
-        <%_ } else { _%>
-        return false
-        <%_ } _%>
-    }
-
-    override fun hashCode() =  <%_ if (!embedded) { _%>
-        Objects.hash(<%- idNames.map(n => `this.${n}`).join(', ') %>)
-    <%_ } else { _%>
-    <%# Todo: Fix this %>
-        31
-    <%_ } _%>
-}
+)

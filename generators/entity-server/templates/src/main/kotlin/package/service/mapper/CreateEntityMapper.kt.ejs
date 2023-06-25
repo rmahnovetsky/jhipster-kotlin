@@ -16,7 +16,7 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -%>
-package <%= entityAbsolutePackage %>.service.mapper
+package <%= entityAbsolutePackage %>.<%= module %>.service.mapper
 
 <%_
 const uuidMapMethod = dtoReferences.some(reference => reference.valueReference && reference.valueReference.field && reference.valueReference.field.fieldTypeUUID);
@@ -36,16 +36,22 @@ otherEntitiesFields.forEach(a => {
 otherEntitiesFields = _.uniqWith(otherEntitiesFields, (a, b) => a.otherEntity === b.otherEntity && a.collection === b.collection && a.relatedField === b.relatedField);
 _%>
 
-import <%= entityAbsoluteClass %>
-import <%= entityAbsolutePackage %>.service.dto.<%= dtoClass %>
+import <%= entityAbsolutePackage %>.<%= module %>.domain.<%= entityClass %>
+import <%= entityAbsolutePackage %>.<%= module %>.service.dto.Create<%= dtoClass %>
+import <%= entityAbsolutePackage %>.core.service.mapper.ToEntityMapper
 
 <%_ for (const otherEntity of _.uniq(dtoRelationships.map(relationship => relationship.otherEntity).filter(otherEntity => otherEntity !== entity))) { _%>
-import <%= otherEntity.entityAbsoluteClass.replace('undefined',entityAbsolutePackage ) %>
-import <%= otherEntity.entityAbsolutePackage || entityAbsolutePackage %>.service.dto.<%= otherEntity.dtoClass %>
+    import <%= otherEntity.entityAbsolutePackage || entityAbsolutePackage %>.<%= module %>.domain.<%= otherEntity.entityClass %>
+    import <%= otherEntity.entityAbsolutePackage || entityAbsolutePackage %>.<%= module %>.service.dto.<%= otherEntity.dtoClass %>
 <%_ } _%>
 
 
-import org.mapstruct.*
+import org.mapstruct.BeanMapping
+import org.mapstruct.Mapper
+import org.mapstruct.Mapping
+import org.mapstruct.Mappings
+import org.mapstruct.Named
+import org.mapstruct.ReportingPolicy
 <%_ if (uuidMapMethod) { _%>
 
 import java.util.Objects;
@@ -55,7 +61,7 @@ import java.util.UUID;
 /**
  * Mapper for the entity [<%= persistClass %>] and its DTO [<%= dtoClass %>].
  */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring",unmappedTargetPolicy = ReportingPolicy.IGNORE)
 interface Create<%= entityClass %>Mapper :
     ToEntityMapper<Create<%= dtoClass %>, <%= persistClass %>> {
 
@@ -74,14 +80,6 @@ interface Create<%= entityClass %>Mapper :
             mappings.push(`Mapping( target = "${field.propertyName}", expression = "${field.mapstructExpression}")`);
         }
     _%>
-    <%_ if (renMapAnotEnt) { _%>
-        <%_ if (mappings.length !== 0) { _%>
-    @Mappings(
-        <%- [...new Set(mappings)].join(',') %>
-    )
-        <%_ } _%>
-    override fun toDto(s: <%= persistClass %>): <%= dtoClass %>
-    <%_ } _%>
     <%_
         var renMapAnotDto = false;  //Render Mapping Annotation during DTO to Entity conversion?
         const mappings2 = [];
@@ -103,27 +101,19 @@ interface Create<%= entityClass %>Mapper :
             }
         }
     _%>
-    <%_ if (renMapAnotDto) { _%>
-        <%_ if (mappings2.length !== 0) { _%>
     @Mappings(
         <%-  [...new Set(mappings2)].join(',') %>
     )
-        <%_ } _%>
-    override fun toEntity(<%= dtoInstance %>: <%= dtoClass %>): <%= persistClass %>
-    <%_ } _%>
+    override fun toEntity(<%= dtoInstance %>: Create<%= dtoClass %>): <%= persistClass %>
 
-
-    <%_
+<%_
         const mappings3 = [];
         for (const {otherEntity, relatedField, collection} of otherEntitiesFields) {
              const mapperName = otherEntity.entityInstance + _.upperFirst(relatedField.propertyName);
     _%>
-
     @Named("<%= mapperName %>")
     @BeanMapping(ignoreByDefault = true)
-
     <%_
-
         for (const field of otherEntity.primaryKey.fields) {
             mappings3.push(`Mapping(target = "${field.propertyName}", source = "${field.propertyName}")`);
         }
@@ -137,7 +127,7 @@ interface Create<%= entityClass %>Mapper :
         <%-  [...new Set(mappings3)].join(',') %>
     )
     <%_ } _%>
-    fun toDto<%= _.upperFirst(mapperName) %>(<%= otherEntity.persistInstance %>: <%- otherEntity.persistClass %>): <%- otherEntity.dtoClass %>
+    fun to<%= _.upperFirst(mapperName) %>(<%= otherEntity.persistInstance %>: <%- otherEntity.persistClass %>): Long? = <%- otherEntity.persistInstance %>.id
 
     <%_ if (collection) { _%>
         <%_ const collectionMapperName = otherEntity.entityInstance + _.upperFirst(relatedField.propertyName) + 'Set'; _%>

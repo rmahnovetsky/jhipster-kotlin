@@ -12,18 +12,26 @@ const getPath = pathName => {
 
 const makeKotlinServerFiles = function (files) {
     // add custom files
-    const extraDTOs = [{
+    const extraDTOs = [
+        {
         file: 'package/service/dto/CreateEntityDTO.java',
             renameTo: generator => `${generator.entityAbsoluteFolder}/service/dto/Create${generator.asDto(generator.entityClass)}.java`,
-    },
-    {
-        file: 'package/service/mapper/CreateEntityMapper.java',
-            renameTo: generator => `${generator.entityAbsoluteFolder}/service/mapper/Create${generator.entityClass}Mapper.java`,
-    }]
-    console.log(files["dtoFiles"])
-    console.log(files["dtoFiles"][0].templates)
+        },
+        {
+            file: 'package/service/mapper/CreateEntityMapper.java',
+                renameTo: generator => `${generator.entityAbsoluteFolder}/service/mapper/Create${generator.entityClass}Mapper.java`,
+        },
+        {
+            file: 'package/service/dto/UpdateEntityDTO.java',
+            renameTo: generator => `${generator.entityAbsoluteFolder}/service/dto/Update${generator.asDto(generator.entityClass)}.java`,
+        },
+        {
+            file: 'package/service/mapper/UpdateEntityMapper.java',
+            renameTo: generator => `${generator.entityAbsoluteFolder}/service/mapper/Update${generator.entityClass}Mapper.java`,
+        }
+    ]
     files["dtoFiles"][0].templates.push(...extraDTOs)
-    console.log(files["dtoFiles"][0].templates)
+
     const keys = Object.keys(files);
     const out = {};
 

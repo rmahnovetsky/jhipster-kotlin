@@ -19,7 +19,7 @@
 <%_ const instanceType = restClass;
 const instanceName = restInstance;
 const mapper = entityInstance  + 'Mapper';
-const dtoToEntity = mapper + '.' + 'toEntity';
+const dtoToEntity = 'update' + mapper + '.' + 'toEntity';
 const entityToDto = mapper + '.' + 'toDto';
 const entityToDtoReference = mapper + '::' + 'toDto';
 const returnPrefix = (returnDirectly && !searchEngineElasticsearch) ? 'return' : 'val result =';

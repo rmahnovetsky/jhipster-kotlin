@@ -65,7 +65,7 @@ import <%= `${otherEntity.entityAbsolutePackage}.service.dto.${otherEntity.dtoCl
 @Schema(description = "<%- formatAsApiDescription(javadoc) %>")
 <%_ } _%>
 @SuppressWarnings("common-java:DuplicatedBlocks")
-data class <%= dtoClass %>(
+data class Update<%= dtoClass %>(
     <%_
         const entityClassProperties = [];
         dtoReferences.forEach(reference => {

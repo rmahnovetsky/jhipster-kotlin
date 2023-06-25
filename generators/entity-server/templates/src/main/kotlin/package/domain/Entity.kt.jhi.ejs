@@ -48,9 +48,12 @@
 <%_ } _%>
   });
 -&>
-package <%= entityAbsolutePackage %>.domain
+package <%= entityAbsolutePackage %>.<%= module %>.domain
 
 <&- fragments.importSection() -&>
+
+import <%= entityAbsolutePackage %>.core.domain.common.AbstractAuditingEntity
+
 <%_ if (relationshipsContainOtherSideIgnore) { _%>
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 <%_ } _%>

@@ -22,31 +22,35 @@ package <%= entityAbsolutePackage %>.<%= module %>.web.rest
 const viaService = !serviceNo;
 _%>
 <%_ if (!dtoMapstruct || serviceNo) { _%>
-import <%= entityAbsolutePackage %>.domain.<%= persistClass %>
+import <%= entityAbsolutePackage %>.<%= module %>.domain.<%= persistClass %>
 <%_ } _%>
-import <%= entityAbsolutePackage %>.repository.<%= entityClass %>Repository
+import <%= entityAbsolutePackage %>.<%= module %>.repository.<%= entityClass %>Repository
 <%_ if (!serviceNo) { _%>
-import <%= entityAbsolutePackage %>.service.<%= entityClass %>Service
+import <%= entityAbsolutePackage %>.<%= module %>.service.<%= entityClass %>Service
 <%_ } else { _%>
     <%_ if (isUsingMapsId) { _%>
-import <%= entityAbsolutePackage %>.repository.<%= mapsIdAssoc.otherEntityNameCapitalized %>Repository
+import <%= entityAbsolutePackage %>.<%= module %>.repository.<%= mapsIdAssoc.otherEntityNameCapitalized %>Repository
     <%_ } _%>
     <%_ if (searchEngineElasticsearch) { _%>
-import <%= entityAbsolutePackage %>.repository.search.<%= entityClass %>SearchRepository
+import <%= entityAbsolutePackage %>.<%= module %>.repository.search.<%= entityClass %>SearchRepository
     <%_ } _%>
 <%_ } _%>
 <%_ if (saveUserSnapshot) { _%>
-import <%= entityAbsolutePackage %>.repository.UserRepository
+import <%= entityAbsolutePackage %>.<%= module %>.repository.UserRepository
 <%_ } _%>
 import <%= packageName %>.core.service.error.BadRequestAlertException
 <%_ if (dtoMapstruct) { _%>
-import <%= entityAbsolutePackage %>.service.dto.<%= dtoClass %>
+import <%= entityAbsolutePackage %>.<%= module %>.service.dto.<%= dtoClass %>
+import <%= entityAbsolutePackage %>.<%= module %>.service.dto.Create<%= dtoClass %>
+import <%= entityAbsolutePackage %>.<%= module %>.service.dto.Update<%= dtoClass %>
 <%_ if (serviceNo) { _%>
-import <%= entityAbsolutePackage %>.service.mapper.<%= entityClass %>Mapper
+import <%= entityAbsolutePackage %>.<%= module %>.service.mapper.<%= entityClass %>Mapper
+import <%= entityAbsolutePackage %>.<%= module %>.service.mapper.Create<%= entityClass %>Mapper
+import <%= entityAbsolutePackage %>.<%= module %>.service.mapper.Update<%= entityClass %>Mapper
 <%_ } } _%>
 <%_ if (jpaMetamodelFiltering) {  _%>
-import <%= entityAbsolutePackage %>.service.criteria.<%= entityClass %>Criteria
-import <%= entityAbsolutePackage %>.service.<%= entityClass %>QueryService
+import <%= entityAbsolutePackage %>.<%= module %>.service.criteria.<%= entityClass %>Criteria
+import <%= entityAbsolutePackage %>.<%= module %>.service.<%= entityClass %>QueryService
 <%_ } _%>
 
 import tech.jhipster.web.util.HeaderUtil
@@ -157,7 +161,7 @@ _%><%- include('../../common/inject_template', {viaService: viaService, construc
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PostMapping("/<%= entityApiUrl %>")
-    fun create<%= entityClass %>(<% if (validation) { %>@Valid <% } %>@RequestBody <%= instanceName %>: <%= instanceType %>): <% if (reactive) { %>Mono<<% } %>ResponseEntity<<%= instanceType %>><% if (reactive) { %>><% } %> {
+    fun create<%= entityClass %>(<% if (validation) { %>@Valid <% } %>@RequestBody <%= instanceName %>: Create<%= instanceType %>): <% if (reactive) { %>Mono<<% } %>ResponseEntity<<%= instanceType %>><% if (reactive) { %>><% } %> {
         log.debug("REST request to save <%= entityClass %> : $<%= instanceName %>")
         if (<%= instanceName %>.<%= primaryKey.name %> != null) {
             throw BadRequestAlertException(
@@ -216,7 +220,7 @@ _%><%- include('../../common/inject_template', {viaService: viaService, construc
     @PutMapping("/<%= entityApiUrl %>/{<%= primaryKey.name %>}")
     fun update<%= entityClass %>(
         @PathVariable(value = "<%= primaryKey.name %>", required = false) <%= primaryKey.name %>: <%= primaryKey.type %>,
-        <% if (validation) { %>@Valid <% } %>@RequestBody <%= instanceName %>: <%= instanceType %>
+        <% if (validation) { %>@Valid <% } %>@RequestBody <%= instanceName %>: Update<%= instanceType %>
     ): <% if (reactive) { %>Mono<<% } %>ResponseEntity<<%= instanceType %>><% if (reactive) { %>><% } %> {
         log.debug("REST request to update <%= entityClass %> : {}, {}", <%= primaryKey.name %>, <%= instanceName %>)
         if (<%= instanceName %>.<%= primaryKey.name %> == null) {
@@ -289,7 +293,7 @@ _%><%- include('../../common/inject_template', {viaService: viaService, construc
     @Throws(URISyntaxException::class)
     fun partialUpdate<%= entityClass %>(
         @PathVariable(value = "<%= primaryKey.name %>", required = false) <%= primaryKey.name %>: <%= primaryKey.type %>,
-        <% if (validation) { %>@NotNull <% } %>@RequestBody <%= instanceName %>:<%= instanceType %>
+        <% if (validation) { %>@NotNull <% } %>@RequestBody <%= instanceName %>: Update<%= instanceType %>
     ): <% if (reactive) { %>Mono<<% } %>ResponseEntity<<%= instanceType %>><% if (reactive) { %>><% } %> {
         log.debug("REST request to partial update <%= entityClass %> partially : {}, {}", <%= primaryKey.name %>, <%= instanceName %>)
         if (<%= instanceName %>.<%= primaryKey.name %> == null) {

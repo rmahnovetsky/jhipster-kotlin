@@ -34,6 +34,8 @@
         beans.push({class: `${entityClass}Repository`, instance: `${entityInstance}Repository`});
         if (dtoMapstruct) {
             beans.push({class: `${entityClass}Mapper`, instance: `${entityInstance}Mapper`});
+            beans.push({class: `Create${entityClass}Mapper`, instance: `create${entityInstance}Mapper`});
+            beans.push({class: `Update${entityClass}Mapper`, instance: `update${entityInstance}Mapper`});
         }
         if (searchEngineElasticsearch) {
             beans.push({class: `${entityClass}SearchRepository`, instance: `${entityInstance}SearchRepository`});

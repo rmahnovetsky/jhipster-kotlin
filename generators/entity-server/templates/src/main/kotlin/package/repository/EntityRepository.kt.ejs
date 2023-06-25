@@ -16,9 +16,9 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -%>
-package <%= entityAbsolutePackage %>.repository
+package <%= entityAbsolutePackage %>.<%= module %>.repository
 
-import <%= entityAbsolutePackage %>.domain.<%= persistClass %>
+import <%= entityAbsolutePackage %>.<%= module %>.domain.<%= persistClass %>
 <%_ if (implementsEagerLoadApis) { _%>
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
