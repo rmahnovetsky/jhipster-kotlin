@@ -41,8 +41,8 @@ import <%= entityAbsolutePackage %>.<%= module %>.service.dto.Update<%= dtoClass
 import <%= entityAbsolutePackage %>.core.service.mapper.ToEntityMapper
 
 <%_ for (const otherEntity of _.uniq(dtoRelationships.map(relationship => relationship.otherEntity).filter(otherEntity => otherEntity !== entity))) { _%>
-    import <%= otherEntity.entityAbsolutePackage || entityAbsolutePackage %>.<%= module %>.domain.<%= otherEntity.entityClass %>
-    import <%= otherEntity.entityAbsolutePackage || entityAbsolutePackage %>.<%= module %>.service.dto.<%= otherEntity.dtoClass %>
+    import <%= otherEntity.entityAbsolutePackage || entityAbsolutePackage %>.<%= otherEntity.module || 'user' %>.domain.<%= otherEntity.entityClass %>
+    import <%= otherEntity.entityAbsolutePackage || entityAbsolutePackage %>.<%= otherEntity.module || 'user' %>.service.dto.<%= otherEntity.dtoClass %>
 <%_ } _%>
 
 

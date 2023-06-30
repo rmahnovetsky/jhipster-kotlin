@@ -18,6 +18,7 @@
 -%>
 package <%= entityAbsolutePackage %>.<%= module %>.repository
 
+import <%= entityAbsolutePackage %>.core.repository.CrudJpaRepository
 import <%= entityAbsolutePackage %>.<%= module %>.domain.<%= persistClass %>
 <%_ if (implementsEagerLoadApis) { _%>
 import org.springframework.data.domain.Page
@@ -66,7 +67,7 @@ import java.util.UUID
 @Suppress("unused")
 <%_ } _%>
 @Repository
-interface <%=entityClass%>Repository : <% if (containsBagRelationships && databaseTypeSql) { %><%= entityClass %>RepositoryWithBagRelationships, <% } %><% if (databaseTypeSql) { %>JpaRepository<% } %><% if (databaseTypeMongodb) { %>MongoRepository<% } %><% if (databaseTypeNeo4j) { %>Neo4jRepository<% } %><% if (databaseTypeCassandra) { %>CassandraRepository<% } %><<%=persistClass%>, <%= primaryKey.type %>><% if (jpaMetamodelFiltering) { %>, JpaSpecificationExecutor<<%= persistClass %>><% } %><% if (searchEngineCouchbase) { %>, SearchCouchbaseRepository<<%= persistClass %>, <%= primaryKey.type %>><% } %> {
+interface <%=entityClass%>Repository : <% if (containsBagRelationships && databaseTypeSql) { %><%= entityClass %>RepositoryWithBagRelationships, <% } %><% if (databaseTypeSql) { %>JpaRepository<% } %><% if (databaseTypeMongodb) { %>MongoRepository<% } %><% if (databaseTypeNeo4j) { %>Neo4jRepository<% } %><% if (databaseTypeCassandra) { %>CassandraRepository<% } %><<%=persistClass%>, <%= primaryKey.type %>><% if (jpaMetamodelFiltering) { %>, JpaSpecificationExecutor<<%= persistClass %>><% } %><% if (searchEngineCouchbase) { %>, SearchCouchbaseRepository<<%= persistClass %>, <%= primaryKey.type %>><% } %>, CrudJpaRepository<<%= persistClass %>, <%= primaryKey.type %>> {
     <%_ for (const relationship of relationships) { _%>
         <%_ if (relationship.relationshipManyToOne && relationship.otherEntityName === 'user' && databaseTypeSql) { _%>
 

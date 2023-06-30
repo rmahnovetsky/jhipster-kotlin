@@ -68,7 +68,7 @@ import <%= `${otherEntity.entityAbsolutePackage}.service.dto.${otherEntity.dtoCl
 data class Create<%= dtoClass %>(
     <%_
         const entityClassProperties = [];
-        dtoReferences.forEach(reference => {
+        dtoReferences.filter((ref) => ref.name !== 'id').forEach(reference => {
             const classProperty = [];
             if (typeof reference.doc !== 'undefined') {
                 classProperty.push(formatAsFieldJavadoc(reference.doc));

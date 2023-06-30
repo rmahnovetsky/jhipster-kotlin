@@ -18,6 +18,7 @@
 -%>
 package <%= entityAbsolutePackage %>.<%= module %>.service.dto
 
+import <%= entityAbsolutePackage %>.core.domain.common.IdMarker
 import java.util.Objects
 <%_ if (typeof javadoc !== 'undefined' || importApiModelProperty) { _%>
 import io.swagger.v3.oas.annotations.media.Schema
@@ -90,17 +91,21 @@ data class <%= dtoClass %>(
             let property = '';
 
             if (field && field.blobContentTypeText) {
-                property = `var ${reference.name}: String? = null`;
+                property = `val ${reference.name}: String? = null`;
             } else if (reference.collection && reference.relationship) {
-                property = `var ${reference.name}: MutableSet<${asDto(reference.relationship.otherEntity.entityNameCapitalized)}> = mutableSetOf()`;
+                property = `val ${reference.name}: MutableSet<${asDto(reference.relationship.otherEntity.entityNameCapitalized)}> = mutableSetOf()`;
             } else if (reference.relationship) {
-                property = `var ${reference.name}Id: Long? = null`;
+                property = `val ${reference.name}Id: Long? = null`;
             } else if (reference.type === 'byte[]') {
-                property = `var ${reference.name}: ByteArray? = null`;
+                property = `val ${reference.name}: ByteArray? = null`;
             } else if (reference.type === 'Integer') {
-                property = `var ${reference.name}: Int? = null`;
+                property = `val ${reference.name}: Int? = null`;
             } else {
-                property = `var ${reference.name}: ${reference.type}? = null`;
+                if (reference.name === 'id') {
+                    property = `override val ${reference.name}: ${reference.type}`;
+                } else {
+                    property = `val ${reference.name}: ${reference.type}? = null`;
+                }
             }
 
             if (reference.field && reference.field.fieldWithContentType) {
@@ -114,4 +119,4 @@ data class <%= dtoClass %>(
     _%>
 
     <%- entityClassProperties.join(',\n\n    ') %>
-)
+) : IdMarker

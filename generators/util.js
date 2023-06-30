@@ -41,6 +41,7 @@ const makeKotlinServerFiles = function (files) {
             path: getPath(file.path),
             templates: file.templates
                 .filter(template => (typeof template.file === 'string' ? template.file.indexOf('package-info') === -1 : true))
+                .filter(template => template.file.indexOf('BaseEntityMapper') === -1)
                 .map(template => {
                     if (template.file) {
                         if (typeof template.file !== 'function') {

@@ -52,6 +52,8 @@ package <%= entityAbsolutePackage %>.<%= module %>.domain
 
 <&- fragments.importSection() -&>
 
+import <%= entityAbsolutePackage %>.core.domain.common.hibernate.HibernateConstants.UNSAVED_ID
+import <%= entityAbsolutePackage %>.core.domain.common.IdMarker
 import <%= entityAbsolutePackage %>.core.domain.common.AbstractAuditingEntity
 
 <%_ if (relationshipsContainOtherSideIgnore) { _%>
@@ -81,8 +83,8 @@ Object.keys(uniqueEnums).forEach(function(element) { _%>
 import <%= entityAbsolutePackage %>.domain.enumeration.<%= element %>
 <%_ }); _%>
 
-<%_ for (const otherEntity of otherEntities.filter(otherEntity => otherEntity.entityPackage !== entityPackage)) { _%>
-import <%= otherEntity.entityAbsoluteClass %>
+<%_ for (const otherEntity of otherEntities) { _%>
+import <%= otherEntity.entityAbsolutePackage || entityAbsolutePackage %>.<%= otherEntity.module || 'user' %>.domain.<%= otherEntity.entityClass %>
 <%_ } _%>
 
 <%_ if (typeof javadoc == 'undefined') { _%>
@@ -115,7 +117,11 @@ data class <%= persistClass %>(
         @Schema(description = "<%- formatAsApiDescription(field.javadoc) %>"<% if (field.fieldValidationRequired) { %>, required = true<% } %>)
         <%_ } _%>
     <&- fragments.field<%- field.fieldNameCapitalized %>AnnotationSection() -&>
+        <%_ if (field.fieldName == 'id') { _%>
+        override val <%= field.fieldName %>: <% if(field.fieldTypeBlobContent === 'text') { _%>String<% } else if(field.fieldType === 'byte[]' && field.fieldTypeBlobContent !== 'text') { _%>ByteArray<%_ } else if(field.fieldType==='Integer'){ _%>Int<%_ } else { _%><%= field.fieldType %><% } %> = UNSAVED_ID,
+        <%_ } else { _%>
         var <%= field.fieldName %>: <% if(field.fieldTypeBlobContent === 'text') { _%>String<% } else if(field.fieldType === 'byte[]' && field.fieldTypeBlobContent !== 'text') { _%>ByteArray<%_ } else if(field.fieldType==='Integer'){ _%>Int<%_ } else { _%><%= field.fieldType %><% } %>? = null,
+        <%_ } _%>
         <%_ if (field.fieldWithContentType) { _%>
     <&- fragments.field<%- field.fieldNameCapitalized %>ContentTypeAnnotationSection() -&>
         var <%= field.fieldName %>ContentType: String? = null,
@@ -126,7 +132,7 @@ data class <%= persistClass %>(
 
 <&- fragments.classAdditionalRelationshipsSection() -&>
     // jhipster-needle-entity-add-field - JHipster will add fields here
-) : <&- fragments.extendsSection() -&> Serializable<&- fragments.additionalInterfacesSection() -&>, AbstractAuditingEntity() {
+) : <&- fragments.extendsSection() -&> Serializable<&- fragments.additionalInterfacesSection() -&>, AbstractAuditingEntity(), IdMarker {
 
   <%_
     // An embedded entity should not reference entities that embed it, unless the other entities are also embedded

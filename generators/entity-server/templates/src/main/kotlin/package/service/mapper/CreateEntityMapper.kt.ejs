@@ -39,10 +39,12 @@ _%>
 import <%= entityAbsolutePackage %>.<%= module %>.domain.<%= entityClass %>
 import <%= entityAbsolutePackage %>.<%= module %>.service.dto.Create<%= dtoClass %>
 import <%= entityAbsolutePackage %>.core.service.mapper.ToEntityMapper
+import org.springframework.beans.factory.annotation.Autowired
 
 <%_ for (const otherEntity of _.uniq(dtoRelationships.map(relationship => relationship.otherEntity).filter(otherEntity => otherEntity !== entity))) { _%>
-    import <%= otherEntity.entityAbsolutePackage || entityAbsolutePackage %>.<%= module %>.domain.<%= otherEntity.entityClass %>
-    import <%= otherEntity.entityAbsolutePackage || entityAbsolutePackage %>.<%= module %>.service.dto.<%= otherEntity.dtoClass %>
+import <%= otherEntity.entityAbsolutePackage || entityAbsolutePackage %>.<%= otherEntity.module || 'user' %>.domain.<%= otherEntity.entityClass %>
+import <%= otherEntity.entityAbsolutePackage || entityAbsolutePackage %>.<%= otherEntity.module || 'user' %>.service.dto.<%= otherEntity.dtoClass %>
+import <%= otherEntity.entityAbsolutePackage || entityAbsolutePackage %>.<%= otherEntity.module || 'user' %>.repository.<%= otherEntity.entityClass %>Repository
 <%_ } _%>
 
 
@@ -62,24 +64,15 @@ import java.util.UUID;
  * Mapper for the entity [<%= persistClass %>] and its DTO [<%= dtoClass %>].
  */
 @Mapper(componentModel = "spring",unmappedTargetPolicy = ReportingPolicy.IGNORE)
-interface Create<%= entityClass %>Mapper :
+abstract class Create<%= entityClass %>Mapper :
     ToEntityMapper<Create<%= dtoClass %>, <%= persistClass %>> {
 
+<%_ for (relationship of dtoRelationships) { %>
+    @Autowired
+    private lateinit var <%=relationship.propertyName%>Repository: <%=relationship.otherEntity.entityClass%>Repository
+
+<%_ } %>
 <%_ if (!embedded) { _%>
-    <%_
-        var renMapAnotEnt = false; //Render Mapping Annotation during Entity to DTO conversion?
-        const mappings = [];
-        for (relationship of dtoRelationships) {
-            renMapAnotEnt = true;
-            let qualifiedByName = relationship.otherEntity.entityInstance + _.upperFirst(relationship.otherEntityField);
-            qualifiedByName = qualifiedByName + (relationship.collection ? 'Set' : '');
-            mappings.push(`Mapping(target = "${relationship.propertyName}", source = "${relationship.propertyName}", qualifiedByName=["${qualifiedByName}"])`);
-        }
-        for (const field of fields.filter(field => field.mapstructExpression)) {
-            renMapAnotEnt = true;
-            mappings.push(`Mapping( target = "${field.propertyName}", expression = "${field.mapstructExpression}")`);
-        }
-    _%>
     <%_
         var renMapAnotDto = false;  //Render Mapping Annotation during DTO to Entity conversion?
         const mappings2 = [];
@@ -91,25 +84,28 @@ interface Create<%= entityClass %>Mapper :
         }
 
         for (relationship of dtoRelationships) {
-            if (!relationship.ownerSide) {
-                renMapAnotDto = true;
-                mappings2.push(`Mapping(target = "${relationship.propertyName}", ignore = true)`);
-            }
-            if (relationship.collection && fluentMethods) {
-                renMapAnotDto = true;
-                mappings2.push(`Mapping(target = "remove${relationship.relationshipNameCapitalized}", ignore = true)`);
-            }
+            renMapAnotDto = true;
+            mappings2.push(`Mapping(target = "${relationship.propertyName}", source = "${relationship.propertyName}Id")`);
+
+            // if (!relationship.ownerSide) {
+            //     renMapAnotDto = true;
+            //     mappings2.push(`Mapping(target = "${relationship.propertyName}", ignore = true)`);
+            // }
+            // if (relationship.collection && fluentMethods) {
+            //     renMapAnotDto = true;
+            //     mappings2.push(`Mapping(target = "remove${relationship.relationshipNameCapitalized}", ignore = true)`);
+            // }
         }
     _%>
     @Mappings(
         <%-  [...new Set(mappings2)].join(',') %>
     )
-    override fun toEntity(<%= dtoInstance %>: Create<%= dtoClass %>): <%= persistClass %>
+    abstract override fun toEntity(<%= dtoInstance %>: Create<%= dtoClass %>): <%= persistClass %>
 
 <%_
-        const mappings3 = [];
-        for (const {otherEntity, relatedField, collection} of otherEntitiesFields) {
-             const mapperName = otherEntity.entityInstance + _.upperFirst(relatedField.propertyName);
+    const mappings3 = [];
+    for (const {otherEntity, relatedField, collection} of otherEntitiesFields) {
+         const mapperName = otherEntity.entityInstance + _.upperFirst(relatedField.propertyName);
     _%>
     @Named("<%= mapperName %>")
     @BeanMapping(ignoreByDefault = true)
@@ -151,4 +147,9 @@ interface Create<%= entityClass %>Mapper :
     fun map(value: byteArray) = String(value)
     <%_ } _%>
 <%_ } _%>
+
+<%_ for (relationship of dtoRelationships) { %>
+    fun get<%=relationship.propertyName%>(id: Long): <%=relationship.otherEntity.entityClass%> = <%=relationship.propertyName%>Repository.getById(id)
+<%_ } %>
+
 }
