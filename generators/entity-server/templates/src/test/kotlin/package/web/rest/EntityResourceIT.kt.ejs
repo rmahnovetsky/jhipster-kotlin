@@ -61,8 +61,11 @@ _%>
 <%_ if (entityAbsolutePackage !== packageName) { _%>
 import <%= packageName %>.web.rest.*
 <% } %>
+import <%= entityAbsolutePackage %>.web.rest.convertObjectToJsonBytes
 import <%= packageName %>.IntegrationTest
-import <%= entityAbsolutePackage %>.domain.<%= persistClass %>
+import <%= entityAbsolutePackage %>.<%=module%>.domain.<%= persistClass %>
+import <%= entityAbsolutePackage %>.<%=module%>.utils.generator.<%= persistClass %>Generator.generate<%= persistClass %>
+import <%= entityAbsolutePackage %>.utils.jwtAdminToken
 <%_
     var imported = [];
     for (relationship of relationships) { // import entities in required relationships
@@ -72,28 +75,30 @@ import <%= entityAbsolutePackage %>.domain.<%= persistClass %>
         if(imported.indexOf(otherEntityNameCapitalized) === -1 && persistClass !== asEntity(otherEntityNameCapitalized)) {
             if ((relationshipValidate !== null && relationshipValidate) || jpaMetamodelFiltering || (isUsingMapsIdL1)) {
 _%>
-import <%= entityAbsolutePackage %>.domain.<%= asEntity(otherEntityNameCapitalized) %>
+import <%= entityAbsolutePackage %>.<%= relationship.otherEntity.module%>.domain.<%= asEntity(otherEntityNameCapitalized) %>
 <%_         imported.push(otherEntityNameCapitalized);
         } } } _%>
 <%_ if (saveUserSnapshot) { _%>
-import <%= entityAbsolutePackage %>.repository.UserRepository
+import <%= entityAbsolutePackage %>.<%=module%>.repository.UserRepository
 <%_ } _%>
-import <%= entityAbsolutePackage %>.repository.<%= entityClass %>Repository
+import <%= entityAbsolutePackage %>.<%=module%>.repository.<%= entityClass %>Repository
 <%_ if (databaseTypeSql && reactive) { _%>
 import <%= packageName %>.repository.EntityManager
 <%_ } _%>
 <%_ if (isUsingMapsId&& ( !dtoMapstruct && serviceNo)) { _%>
-import <%= entityAbsolutePackage %>.repository.<%= mapsIdAssoc.otherEntityNameCapitalized %>Repository
+import <%= entityAbsolutePackage %>.<%=module%>.repository.<%= mapsIdAssoc.otherEntityNameCapitalized %>Repository
 <%_ } _%>
 <%_ if (searchEngineElasticsearch) { _%>
-import <%= entityAbsolutePackage %>.repository.search.<%= entityClass %>SearchRepository
+import <%= entityAbsolutePackage %>.<%=module%>.repository.search.<%= entityClass %>SearchRepository
 <%_ } _%>
 <%_ if (!serviceNo && implementsEagerLoadApis) { _%>
-import <%= entityAbsolutePackage %>.service.<%= entityClass %>Service
+import <%= entityAbsolutePackage %>.<%=module%>.service.<%= entityClass %>Service
 <%_ } _%>
 <%_ if (dtoMapstruct) { _%>
-import <%= entityAbsolutePackage %>.service.dto.<%= dtoClass %>
-import <%= entityAbsolutePackage %>.service.mapper.<%= entityClass %>Mapper
+import <%= entityAbsolutePackage %>.<%=module%>.service.dto.<%= dtoClass %>
+import <%= entityAbsolutePackage %>.<%=module%>.service.dto.Update<%= dtoClass %>
+import <%= entityAbsolutePackage %>.<%=module%>.service.dto.Create<%= dtoClass %>
+import <%= entityAbsolutePackage %>.<%=module%>.service.mapper.<%= entityClass %>Mapper
 <%_ } _%>
 <%_ if (jpaMetamodelFiltering) { _%>
 import <%= entityAbsolutePackage %>.service.criteria.<%= entityClass %>Criteria
@@ -334,12 +339,11 @@ class <%= entityClass %>ResourceIT {
         <%_ if (databaseTypeSql && reactive) {  _%>
         deleteEntities(em)
         <%_ } _%>
-        <%= persistInstance %> = createEntity(<% if (databaseTypeSql) { %>em<% } %>)
+        <%= persistInstance %> = generate<%= entityClass %>(<% if (databaseTypeSql) { %>em<% } %>)
     }
 <%_ if (!readOnly) { _%>
 
     @Test<%= transactionalAnnotation %>
-    @Throws(Exception::class)
     fun create<%= entityClass %>() {
         val databaseSizeBeforeCreate = <%= entityInstance %>Repository.findAll()<%= callListBlock %>.size
         <%_ if (searchEngineElasticsearch) { _%>
@@ -358,6 +362,7 @@ class <%= entityClass %>ResourceIT {
         <%_ } _%>
         <%_ if (reactive) { _%>
         webTestClient.post().uri(ENTITY_API_URL)
+            .with(jwtAdminToken())
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(convertObjectToJsonBytes(<%= restInstance %>))
             .exchange()
@@ -365,6 +370,7 @@ class <%= entityClass %>ResourceIT {
         <%_ } else { _%>
         rest<%= entityClass %>MockMvc.perform(
             post(ENTITY_API_URL)<% if (testsNeedCsrf) { %>.with(csrf())<% }%>
+                .with(jwtAdminToken())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(convertObjectToJsonBytes(<%= restInstance %>))
         ).andExpect(status().isCreated)
@@ -402,53 +408,8 @@ class <%= entityClass %>ResourceIT {
         <%_ } _%>
     }
 
-    @Test<%= transactionalAnnotation %>
-    @Throws(Exception::class)
-    fun create<%= entityClass %>WithExistingId() {
-        // Create the <%= entityClass %> with an existing ID
-        <%_ if (primaryKey.typeUUID && databaseTypeSql) { _%>
-        <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>
-        <%_ } else { _%>
-        <%= persistInstance %>.<%= primaryKey.name %> = <% if (primaryKey.typeUUID) { %>UUID.randomUUID()<% } else if (primaryKey.typeLong) { %>1L<% } else { %>"existing_id"<% } %>
-        <%_ } _%>
-        <%_ if (dtoMapstruct) { _%>
-        val <%= dtoInstance %> = <%= entityInstance %>Mapper.toDto(<%= persistInstance %>)
-        <%_ } _%>
-
-        val databaseSizeBeforeCreate = <%= entityInstance %>Repository.findAll()<%= callListBlock %>.size
-        <%_ if (searchEngineElasticsearch) { _%>
-        val searchDatabaseSizeBefore = IterableUtil.sizeOf(<%= entityInstance %>SearchRepository.findAll()<%= callListBlock %>)
-        <%_ } _%>
-        // An entity with an existing ID cannot be created, so this API call must fail
-        <%_ if (reactive) { _%>
-        webTestClient.post().uri(ENTITY_API_URL)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(convertObjectToJsonBytes(<%= restInstance %>))
-            .exchange()
-            .expectStatus().isBadRequest
-        <%_ } else { _%>
-        rest<%= entityClass %>MockMvc.perform(
-            post(ENTITY_API_URL)<% if (testsNeedCsrf) { %>.with(csrf())<% }%>
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(convertObjectToJsonBytes(<%= restInstance %>))
-        ).andExpect(status().isBadRequest)
-        <%_ } _%>
-
-        // Validate the <%= entityClass %> in the database
-        <%_ if (databaseTypeCouchbase) { _%>
-        SecurityContextHolder.setContext(TestSecurityContextHolder.getContext())
-        <%_ } _%>
-        val <%= entityInstance %>List = <%= entityInstance %>Repository.findAll()<%= callListBlock %>
-        assertThat(<%= entityInstance %>List).hasSize(databaseSizeBeforeCreate)
-        <%_ if (searchEngineElasticsearch) { _%>
-        val searchDatabaseSizeAfter = IterableUtil.sizeOf(<%= entityInstance %>SearchRepository.findAll()<%= callListBlock %>)
-        assertThat(searchDatabaseSizeAfter).isEqualTo(searchDatabaseSizeBefore)
-        <%_ } _%>
-    }
-
     <%_ if (databaseTypeSql && isUsingMapsId) { _%>
     @Test<%= transactionalAnnotation %>
-    @Throws(Exception::class)
     fun update<%= entityClass %>MapsIdAssociationWithNewId() {
         // Initialize the database
         <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>
@@ -490,12 +451,14 @@ class <%= entityClass %>ResourceIT {
         // Update the entity
         <%_ if (reactive) { _%>
         webTestClient.put().uri(ENTITY_API_URL_ID, <%_ if (dtoMapstruct) { _%>updated<%= dtoClass %> <%_ } else { _%> updated<%= persistClass %> <%_ } _%>.<%= primaryKey.name %>)
+            .with(jwtAdminToken())
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(convertObjectToJsonBytes(<%_ if (dtoMapstruct) { _%>updated<%= dtoClass %> <%_ } else { _%> updated<%= persistClass %> <%_ } _%>))
             .exchange()
             .expectStatus().isOk
         <%_ } else { _%>
         rest<%= entityClass %>MockMvc.perform(put(ENTITY_API_URL_ID, <%_ if (dtoMapstruct) { _%>updated<%= dtoClass %> <%_ } else { _%> updated<%= persistClass %> <%_ } _%>.<%= primaryKey.name %>)<% if (testsNeedCsrf) { %>.with(csrf())<% }%>
+            .with(jwtAdminToken())
             .contentType(MediaType.APPLICATION_JSON)
             .content(convertObjectToJsonBytes(<%_ if (dtoMapstruct) { _%>updated<%= dtoClass %> <%_ } else { _%> updated<%= persistClass %> <%_ } _%>)))
             .andExpect(status().isOk)
@@ -527,7 +490,6 @@ class <%= entityClass %>ResourceIT {
     } _%>
     <%_ if (required) { _%>
     @Test<%= transactionalAnnotation %>
-    @Throws(Exception::class)
     fun check<%= field.fieldInJavaBeanMethod %>IsRequired() {
         val databaseSizeBeforeTest = <%= entityInstance %>Repository.findAll()<%= callListBlock %>.size
         <%_ if (searchEngineElasticsearch) { _%>
@@ -541,6 +503,7 @@ class <%= entityClass %>ResourceIT {
 
         <%_ if (reactive) { _%>
         webTestClient.post().uri(ENTITY_API_URL)
+            .with(jwtAdminToken())
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(convertObjectToJsonBytes(<%= restInstance %>))
             .exchange()
@@ -548,6 +511,7 @@ class <%= entityClass %>ResourceIT {
         <%_ } else { _%>
         rest<%= entityClass %>MockMvc.perform(
             post(ENTITY_API_URL)<% if (testsNeedCsrf) { %>.with(csrf())<% }%>
+                .with(jwtAdminToken())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(convertObjectToJsonBytes(<%= restInstance %>))
         ).andExpect(status().isBadRequest)
@@ -612,7 +576,6 @@ class <%= entityClass %>ResourceIT {
     <%_ } _%>
 
     @Test<%= transactionalAnnotation %>
-    <% if (!reactive) { %>@Throws(Exception::class)<% } %>
     fun getAll<%= entityClassPlural %>() {
         // Initialize the database
         <%_ if (!primaryKey.derived) { _%>
@@ -631,7 +594,8 @@ class <%= entityClass %>ResourceIT {
             .expectHeader().contentType(MediaType.APPLICATION_JSON)
             .expectBody()
         <%_ } else { _%>
-        rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL<% if (!databaseTypeCassandra) { %>+ "?sort=<%= primaryKey.name %>,desc"<% } %>))
+        rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL<% if (!databaseTypeCassandra) { %>+ "?sort=<%= primaryKey.name %>,desc"<% } %>)
+            .with(jwtAdminToken()))
             .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
         <%_ } _%>
@@ -657,7 +621,6 @@ class <%= entityClass %>ResourceIT {
     }
     <% if (implementsEagerLoadApis && !databaseTypeNeo4j && !databaseTypeCouchbase) { %>
     @Suppress("unchecked")
-    <% if (!reactive) { %>@Throws(Exception::class)<% } %>
     fun getAll<%= entityClassPlural %>WithEagerRelationshipsIsEnabled() {
         <%_ if (!serviceNo) { _%>
         `when`(<%= entityInstance %>ServiceMock.findAllWithEagerRelationships(any())).thenReturn(<% if (reactive) { %>Flux.empty()<% } else { %>PageImpl(mutableListOf())<% }%>)
@@ -670,7 +633,8 @@ class <%= entityClass %>ResourceIT {
             .exchange()
             .expectStatus().isOk
         <%_ } else { _%>
-        rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL + "?eagerload=false"))
+        rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL + "?eagerload=false")
+            .with(jwtAdminToken()))
             .andExpect(status().isOk)
         <%_ } _%>
 
@@ -678,7 +642,6 @@ class <%= entityClass %>ResourceIT {
     }
 
     @Suppress("unchecked")
-    <% if (!reactive) { %>@Throws(Exception::class)<% } %>
     fun getAll<%= entityClassPlural %>WithEagerRelationshipsIsNotEnabled() {
         <%_ if (!serviceNo) { _%>
         `when`(<%= entityInstance %>ServiceMock.findAllWithEagerRelationships(any())).thenReturn(<% if (reactive) { %>Flux.empty()<% } else { %>PageImpl(mutableListOf())<% }%>)
@@ -691,7 +654,8 @@ class <%= entityClass %>ResourceIT {
             .exchange()
             .expectStatus().isOk
         <%_ } else { _%>
-        rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL + "?eagerload=true"))
+        rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL + "?eagerload=true")
+            .with(jwtAdminToken()))
             .andExpect(status().isOk)
         <%_ } _%>
 
@@ -704,7 +668,6 @@ class <%= entityClass %>ResourceIT {
     <%_ } _%>
 
     @Test<%= transactionalAnnotation %>
-    <% if (!reactive) { %>@Throws(Exception::class)<% } %>
     fun get<%= entityClass %>() {
         // Initialize the database
         <%_ if (!primaryKey.derived) { _%>
@@ -726,7 +689,8 @@ class <%= entityClass %>ResourceIT {
             .expectHeader().contentType(MediaType.APPLICATION_JSON)
             .expectBody()
         <%_ } else { _%>
-        rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL_ID, <%= persistInstance %>.<%= primaryKey.name %>))
+        rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL_ID, <%= persistInstance %>.<%= primaryKey.name %>)
+            .with(jwtAdminToken()))
             .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
         <%_ } _%>
@@ -751,7 +715,6 @@ class <%= entityClass %>ResourceIT {
     }
 <%_ if (jpaMetamodelFiltering) {  %>
     @Test<%= transactionalAnnotation %>
-    <% if (!reactive) { %>@Throws(Exception::class)<% } %>
     fun get<%= entityClassPlural %>ByIdFiltering()  {
       // Initialize the database
       <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>
@@ -770,7 +733,6 @@ class <%= entityClass %>ResourceIT {
     <%_ fieldsToTest.forEach((searchBy) => { /* we can't filter by all the fields. */ _%>
         <%_ if (isFilterableType(searchBy.fieldType)) { _%>
     @Test<%= transactionalAnnotation %>
-    <% if (!reactive) { %>@Throws(Exception::class)<% } %>
     fun getAll<%= entityClassPlural %>By<%= searchBy.fieldInJavaBeanMethod %>IsEqualToSomething() {
         // Initialize the database
         <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>
@@ -783,7 +745,6 @@ class <%= entityClass %>ResourceIT {
     }
 
     @Test<%= transactionalAnnotation %>
-    <% if (!reactive) { %>@Throws(Exception::class)<% } %>
     fun getAll<%= entityClassPlural %>By<%= searchBy.fieldInJavaBeanMethod %>IsInShouldWork() {
         // Initialize the database
         <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>
@@ -796,7 +757,6 @@ class <%= entityClass %>ResourceIT {
     }
 
     @Test<%= transactionalAnnotation %>
-    <% if (!reactive) { %>@Throws(Exception::class)<% } %>
     fun getAll<%= entityClassPlural %>By<%= searchBy.fieldInJavaBeanMethod %>IsNullOrNotNull() {
         // Initialize the database
         <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>
@@ -810,7 +770,6 @@ class <%= entityClass %>ResourceIT {
         <%_ } _%>
         <%_ if (searchBy.fieldTypeString) { _%>
     @Test<%= transactionalAnnotation %>
-    <% if (!reactive) { %>@Throws(Exception::class)<% } %>
     fun getAll<%= entityClassPlural %>By<%= searchBy.fieldInJavaBeanMethod %>ContainsSomething(){
         // Initialize the database
         <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>
@@ -823,7 +782,6 @@ class <%= entityClass %>ResourceIT {
     }
 
     @Test<%= transactionalAnnotation %>
-    <% if (!reactive) { %>@Throws(Exception::class)<% } %>
     fun getAll<%= entityClassPlural %>By<%= searchBy.fieldInJavaBeanMethod %>NotContainsSomething() {
         // Initialize the database
         <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>
@@ -858,7 +816,6 @@ class <%= entityClass %>ResourceIT {
             _%>
 
     @Test<%= transactionalAnnotation %>
-    <% if (!reactive) { %>@Throws(Exception::class)<% } %>
     fun getAll<%= entityClassPlural %>By<%= searchBy.fieldInJavaBeanMethod %>IsGreaterThanOrEqualToSomething() {
         // Initialize the database
         <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>
@@ -871,7 +828,6 @@ class <%= entityClass %>ResourceIT {
     }
 
     @Test<%= transactionalAnnotation %>
-    <% if (!reactive) { %>@Throws(Exception::class)<% } %>
     fun getAll<%= entityClassPlural %>By<%= searchBy.fieldInJavaBeanMethod %>IsLessThanOrEqualToSomething() {
         // Initialize the database
         <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>
@@ -884,7 +840,6 @@ class <%= entityClass %>ResourceIT {
     }
 
     @Test<%= transactionalAnnotation %>
-    <% if (!reactive) { %>@Throws(Exception::class)<% } %>
     fun getAll<%= entityClassPlural %>By<%= searchBy.fieldInJavaBeanMethod %>IsLessThanSomething() {
         // Initialize the database
         <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>
@@ -897,7 +852,6 @@ class <%= entityClass %>ResourceIT {
     }
 
     @Test<%= transactionalAnnotation %>
-    <% if (!reactive) { %>@Throws(Exception::class)<% } %>
     fun getAll<%= entityClassPlural %>By<%= searchBy.fieldInJavaBeanMethod %>IsGreaterThanSomething() {
         // Initialize the database
         <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>
@@ -914,7 +868,6 @@ class <%= entityClass %>ResourceIT {
 <%_ relationships.forEach((relationship) => { _%>
 
     @Test<%= transactionalAnnotation %>
-    <% if (!reactive) { %>@Throws(Exception::class)<% } %>
     fun getAll<%= entityClassPlural %>By<%= relationship.relationshipNameCapitalized %>IsEqualToSomething() {
         <%_ if ((relationship.relationshipValidate && relationship.relationshipOneToOne) || relationship.id) { _%>
         // Get already existing entity
@@ -999,9 +952,9 @@ class <%= entityClass %>ResourceIT {
                 .expectBody().json("1")
     }
     <% } else { %>
-    @Throws(Exception::class)
     private fun default<%= entityClass %>ShouldBeFound(filter: String) {
         rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL + "?sort=<%= primaryKey.name %>,desc&$filter"))
+            .with(jwtAdminToken())
             .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             <%_
@@ -1031,7 +984,8 @@ class <%= entityClass %>ResourceIT {
 
 
         // Check, that the count call also returns 1
-        rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL + "/count?sort=<%= primaryKey.name %>,desc&$filter"))
+        rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL + "/count?sort=<%= primaryKey.name %>,desc&$filter")
+            .with(jwtAdminToken()))
             .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(content().string("1"))
@@ -1061,16 +1015,17 @@ class <%= entityClass %>ResourceIT {
             .expectBody().json("0")
     }
 <%_ } else { _%>
-    @Throws(Exception::class)
     private fun default<%= entityClass %>ShouldNotBeFound(filter: String) {
-        rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL + "?sort=<%= primaryKey.name %>,desc&$filter"))
+        rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL + "?sort=<%= primaryKey.name %>,desc&$filter")
+            .with(jwtAdminToken()))
             .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(jsonPath("$").isArray)
             .andExpect(jsonPath("$").isEmpty)
 
         // Check, that the count call also returns 0
-        rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL + "/count?sort=<%= primaryKey.name %>,desc&$filter"))
+        rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL + "/count?sort=<%= primaryKey.name %>,desc&$filter")
+            .with(jwtAdminToken()))
             .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(content().string("0"))
@@ -1078,7 +1033,6 @@ class <%= entityClass %>ResourceIT {
 <%_  } _%>
 <%_  } _%>
     @Test<%= transactionalAnnotation %>
-    <% if (!reactive) { %>@Throws(Exception::class)<% } %>
     fun getNonExisting<%= entityClass %>() {
         // Get the <%= entityInstance %>
         <%_ if (reactive) { _%>
@@ -1087,7 +1041,8 @@ class <%= entityClass %>ResourceIT {
             .exchange()
             .expectStatus().isNotFound
         <%_ } else { _%>
-        rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL_ID, <% if (primaryKey.typeLong || primaryKey.typeString) { %>Long.MAX_VALUE<% } else if (primaryKey.typeUUID) { %>UUID.randomUUID().toString()<% } %>))
+        rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL_ID, <% if (primaryKey.typeLong || primaryKey.typeString) { %>Long.MAX_VALUE<% } else if (primaryKey.typeUUID) { %>UUID.randomUUID().toString()<% } %>)
+            .with(jwtAdminToken()))
             .andExpect(status().isNotFound)
         <%_ } _%>
     }
@@ -1126,6 +1081,7 @@ class <%= entityClass %>ResourceIT {
 
         <%_ if (reactive) { _%>
         webTestClient.put().uri(ENTITY_API_URL_ID, <%= (dtoMapstruct ? asDto(entityInstance) : 'updated' + persistClass) %>.<%= primaryKey.name %>)
+            .with(jwtAdminToken())
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(convertObjectToJsonBytes(<%= (dtoMapstruct ? dtoInstance : 'updated' + persistClass) %>))
             .exchange()
@@ -1133,6 +1089,7 @@ class <%= entityClass %>ResourceIT {
         <%_ } else { _%>
         rest<%= entityClass %>MockMvc.perform(
             put(ENTITY_API_URL_ID, <%= (dtoMapstruct ? asDto(entityInstance) : 'updated' + persistClass) %>.<%= primaryKey.name %>)<% if (testsNeedCsrf) { %>.with(csrf())<% }%>
+                .with(jwtAdminToken())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(convertObjectToJsonBytes(<% if (dtoMapstruct) { %><%= dtoInstance %><% } else { %>updated<%= persistClass %><% } %>))
         ).andExpect(status().isOk)
@@ -1185,22 +1142,23 @@ class <%= entityClass %>ResourceIT {
         <%_ if (searchEngineElasticsearch) { _%>
         val searchDatabaseSizeBefore = IterableUtil.sizeOf(<%= entityInstance %>SearchRepository.findAll()<%= callListBlock %>)
         <%_ } _%>
-        <%= persistInstance %>.<%= primaryKey.name %> = <%= getJavaValueGeneratorForType(primaryKey.type) %>
 
         <%_ if (dtoMapstruct) { _%>
         // Create the <%= entityClass %>
-        val <%= dtoInstance %> = <%= entityInstance %>Mapper.toDto(<%= persistInstance %>)
+        val <%= dtoInstance %> = <%= entityInstance %>Mapper.toDto(<%= persistInstance %>.copy(<%= primaryKey.name %> = <%= getJavaValueGeneratorForType(primaryKey.type) %>))
         <%_ } _%>
 
         // If the entity doesn't have an ID, it will throw BadRequestAlertException
         <%_ if (reactive) { _%>
         webTestClient.put().uri(ENTITY_API_URL_ID, <%= restInstance %>.<%= primaryKey.name %>)
+            .with(jwtAdminToken())
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(convertObjectToJsonBytes(<%= restInstance %>))
             .exchange()
             .expectStatus().isBadRequest
         <%_ } else { _%>
         rest<%= entityClass %>MockMvc.perform(put(ENTITY_API_URL_ID, <%= restInstance %>.<%= primaryKey.name %>)<% if (testsNeedCsrf) { %>.with(csrf())<% }%>
+            .with(jwtAdminToken())
             .contentType(MediaType.APPLICATION_JSON)
             .content(convertObjectToJsonBytes(<%= restInstance %>)))
             .andExpect(status().isBadRequest)
@@ -1219,28 +1177,28 @@ class <%= entityClass %>ResourceIT {
     }
 
     @Test<%= transactionalAnnotation %>
-    @Throws(Exception::class)
     fun putWithIdMismatch<%= entityClass %>() {
         val databaseSizeBeforeUpdate = <%= entityInstance %>Repository.findAll()<%= callListBlock %>.size
         <%_ if (searchEngineElasticsearch) { _%>
         val searchDatabaseSizeBefore = IterableUtil.sizeOf(<%= entityInstance %>SearchRepository.findAll()<%= callListBlock %>)
         <%_ } _%>
-        <%= persistInstance %>.<%= primaryKey.name %> = <%= getJavaValueGeneratorForType(primaryKey.type) %>
 
         <%_ if (dtoMapstruct) { _%>
         // Create the <%= entityClass %>
-        val <%= dtoInstance %> = <%= entityInstance %>Mapper.toDto(<%= persistInstance %>)
+        val <%= dtoInstance %> = <%= entityInstance %>Mapper.toDto(<%= persistInstance %>.copy(<%= primaryKey.name %> = <%= getJavaValueGeneratorForType(primaryKey.type) %>))
 
         <%_ } _%>
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
         <%_ if (!reactive) { _%>
         rest<%= entityClass %>MockMvc.perform(
             put(ENTITY_API_URL_ID, <%= getJavaValueGeneratorForType(primaryKey.type) %>)<% if (testsNeedCsrf) { %>.with(csrf())<% }%>
+                .with(jwtAdminToken())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(convertObjectToJsonBytes(<%= restInstance %>))
         ).andExpect(status().isBadRequest)
         <%_ } else { _%>
         webTestClient.put().uri(ENTITY_API_URL_ID, <%= getJavaValueGeneratorForType(primaryKey.type) %>)
+            .with(jwtAdminToken())
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(convertObjectToJsonBytes(<%= restInstance %>))
             .exchange()
@@ -1260,28 +1218,27 @@ class <%= entityClass %>ResourceIT {
     }
 
     @Test<%= transactionalAnnotation %>
-    @Throws(Exception::class)
     fun putWithMissingIdPathParam<%= entityClass %>() {
         val databaseSizeBeforeUpdate = <%= entityInstance %>Repository.findAll()<%= callListBlock %>.size
     <%_ if (searchEngineElasticsearch) { _%>
         val searchDatabaseSizeBefore = IterableUtil.sizeOf(<%= entityInstance %>SearchRepository.findAll()<%= callListBlock %>);
     <%_ } _%>
-        <%= persistInstance %>.<%= primaryKey.name %> = <%= getJavaValueGeneratorForType(primaryKey.type) %>
-
         <%_ if (dtoMapstruct) { _%>
         // Create the <%= entityClass %>
-        val <%= dtoInstance %> = <%= entityInstance %>Mapper.toDto(<%= persistInstance %>)
+        val <%= dtoInstance %> = <%= entityInstance %>Mapper.toDto(<%= persistInstance %>.copy(<%= primaryKey.name %> = <%= getJavaValueGeneratorForType(primaryKey.type) %>))
 
         <%_ } _%>
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
         <%_ if (reactive) { _%>
         webTestClient.put().uri(ENTITY_API_URL)
+            .with(jwtAdminToken())
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(convertObjectToJsonBytes(<%= restInstance %>))
             .exchange()
             .expectStatus().isEqualTo(405)
         <%_ } else { _%>
         rest<%= entityClass %>MockMvc.perform(put(ENTITY_API_URL)<% if (testsNeedCsrf) { %>.with(csrf())<% } %>
+            .with(jwtAdminToken())
             .contentType(MediaType.APPLICATION_JSON)
             .content(convertObjectToJsonBytes(<%= restInstance %>)))
             .andExpect(status().isMethodNotAllowed)
@@ -1309,7 +1266,6 @@ class <%= entityClass %>ResourceIT {
         };
     _%>
     @Test<%= transactionalAnnotation %>
-    @Throws(Exception::class)
     fun partialUpdate<%= entityClass %>WithPatch() {
          <%_ if (!primaryKey.derived) { _%>
             <%_ for (field of primaryKey.fields.filter(f => !f.autoGenerateByRepository)) { _%>
@@ -1322,7 +1278,6 @@ class <%= entityClass %>ResourceIT {
     }
 
     @Test<%= transactionalAnnotation %>
-    @Throws(Exception::class)
     fun fullUpdate<%= entityClass %>WithPatch() {
         <%_ if (!primaryKey.derived) { _%>
             <%_ for (field of primaryKey.fields.filter(f => !f.autoGenerateByRepository)) { _%>
@@ -1335,17 +1290,15 @@ class <%= entityClass %>ResourceIT {
     }
 
     @Test<%= transactionalAnnotation %>
-    @Throws(Exception::class)
     fun patchNonExisting<%= entityClass %>() {
         val databaseSizeBeforeUpdate = <%= entityInstance %>Repository.findAll()<%= callListBlock %>.size
   <%_ if (searchEngineElasticsearch) { _%>
         val searchDatabaseSizeBefore = IterableUtil.sizeOf(<%= entityInstance %>SearchRepository.findAll()<%= callListBlock %>)
   <%_ } _%>
-        <%= asEntity(entityInstance) %>.<%= primaryKey.name %> = <%= getJavaValueGeneratorForType(primaryKey.type) %>
 
         <%_ if (dtoMapstruct) { _%>
         // Create the <%= entityClass %>
-        val <%= asDto(entityInstance) %> = <%= entityInstance %>Mapper.toDto(<%= asEntity(entityInstance) %>)
+        val <%= asDto(entityInstance) %> = <%= entityInstance %>Mapper.toDto(<%= asEntity(entityInstance)%>.copy(<%= primaryKey.name %> = <%= getJavaValueGeneratorForType(primaryKey.type) %>))
 
         <%_ } _%>
         // If the entity doesn't have an ID, it will throw BadRequestAlertException
@@ -1357,6 +1310,7 @@ class <%= entityClass %>ResourceIT {
             .expectStatus().isBadRequest
         <%_ } else { _%>
         rest<%= entityClass %>MockMvc.perform(patch(ENTITY_API_URL_ID, <%= (dtoMapstruct ? asDto(entityInstance) : asEntity(entityInstance)) %>.<%= primaryKey.name %>)<% if (testsNeedCsrf) { %>.with(csrf())<% }%>
+            .with(jwtAdminToken())
             .contentType("application/merge-patch+json")
             .content(convertObjectToJsonBytes(<%= (dtoMapstruct ? asDto(entityInstance) : asEntity(entityInstance)) %>)))
             .andExpect(status().isBadRequest)
@@ -1375,28 +1329,27 @@ class <%= entityClass %>ResourceIT {
     }
 
     @Test<%= transactionalAnnotation %>
-    @Throws(Exception::class)
     fun patchWithIdMismatch<%= entityClass %>() {
         val databaseSizeBeforeUpdate = <%= entityInstance %>Repository.findAll()<%= callListBlock %>.size
   <%_ if (searchEngineElasticsearch) { _%>
         val searchDatabaseSizeBefore = IterableUtil.sizeOf(<%= entityInstance %>SearchRepository.findAll()<%= callListBlock %>)
   <%_ } _%>
-        <%= asEntity(entityInstance) %>.<%= primaryKey.name %> = <%= getJavaValueGeneratorForType(primaryKey.type) %>
-
         <%_ if (dtoMapstruct) { _%>
         // Create the <%= entityClass %>
-        val <%= asDto(entityInstance) %> = <%= entityInstance %>Mapper.toDto(<%= asEntity(entityInstance) %>)
+        val <%= asDto(entityInstance) %> = <%= entityInstance %>Mapper.toDto(<%= asEntity(entityInstance)%>.copy(<%= primaryKey.name %> = <%= getJavaValueGeneratorForType(primaryKey.type) %>))
 
         <%_ } _%>
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
         <%_ if (reactive) { _%>
         webTestClient.patch().uri(ENTITY_API_URL_ID, <%= getJavaValueGeneratorForType(primaryKey.type) %>)
+            .with(jwtAdminToken())
             .contentType(MediaType.valueOf("application/merge-patch+json"))
             .bodyValue(convertObjectToJsonBytes(<%= (dtoMapstruct ? asDto(entityInstance) : asEntity(entityInstance)) %>))
             .exchange()
             .expectStatus().isBadRequest
         <%_ } else { _%>
         rest<%= entityClass %>MockMvc.perform(patch(ENTITY_API_URL_ID, <%= getJavaValueGeneratorForType(primaryKey.type) %>)<% if (testsNeedCsrf) { %>.with(csrf())<% } %>
+            .with(jwtAdminToken())
             .contentType("application/merge-patch+json")
             .content(convertObjectToJsonBytes(<%= (dtoMapstruct ? asDto(entityInstance) : asEntity(entityInstance)) %>)))
             .andExpect(status().isBadRequest)
@@ -1415,28 +1368,27 @@ class <%= entityClass %>ResourceIT {
     }
 
     @Test<%= transactionalAnnotation %>
-    @Throws(Exception::class)
     fun patchWithMissingIdPathParam<%= entityClass %>() {
         val databaseSizeBeforeUpdate = <%= entityInstance %>Repository.findAll()<%= callListBlock %>.size
     <%_ if (searchEngineElasticsearch) { _%>
         val searchDatabaseSizeBefore = IterableUtil.sizeOf(<%= entityInstance %>SearchRepository.findAll()<%= callListBlock %>);
     <%_ } _%>
-        <%= asEntity(entityInstance) %>.<%= primaryKey.name %> = <%= getJavaValueGeneratorForType(primaryKey.type) %>
-
         <%_ if (dtoMapstruct) { _%>
         // Create the <%= entityClass %>
-        val <%= asDto(entityInstance) %> = <%= entityInstance %>Mapper.toDto(<%= asEntity(entityInstance) %>)
+        val <%= asDto(entityInstance) %> = <%= entityInstance %>Mapper.toDto(<%= asEntity(entityInstance)%>.copy(<%= primaryKey.name %> = <%= getJavaValueGeneratorForType(primaryKey.type) %>))
 
         <%_ } _%>
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
         <%_ if (reactive) { _%>
         webTestClient.patch().uri(ENTITY_API_URL)
+            .with(jwtAdminToken())
             .contentType(MediaType.valueOf("application/merge-patch+json"))
             .bodyValue(convertObjectToJsonBytes(<%= (dtoMapstruct ? asDto(entityInstance) : asEntity(entityInstance)) %>))
             .exchange()
             .expectStatus().isEqualTo(405)
         <%_ } else { _%>
         rest<%= entityClass %>MockMvc.perform(patch(ENTITY_API_URL)<% if (testsNeedCsrf) { %>.with(csrf())<% } %>
+            .with(jwtAdminToken())
             .contentType("application/merge-patch+json")
             .content(convertObjectToJsonBytes(<%= (dtoMapstruct ? asDto(entityInstance) : asEntity(entityInstance)) %>)))
             .andExpect(status().isMethodNotAllowed)
@@ -1455,7 +1407,6 @@ class <%= entityClass %>ResourceIT {
     }
 
     @Test<%= transactionalAnnotation %>
-    <% if (!reactive) { %>@Throws(Exception::class)<% } %>
     fun delete<%= entityClass %>() {
         // Initialize the database
         <%_ if (!primaryKey.derived) { _%>
@@ -1476,12 +1427,14 @@ class <%= entityClass %>ResourceIT {
         // Delete the <%= entityInstance %>
         <%_ if (reactive) { _%>
         webTestClient.delete().uri(ENTITY_API_URL_ID, <%= persistInstance %>.<%= primaryKey.name %>)
+            .with(jwtAdminToken())
             .accept(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isNoContent
         <%_ } else { _%>
         rest<%= entityClass %>MockMvc.perform(
             delete(ENTITY_API_URL_ID, <%= persistInstance %>.<%= primaryKey.name %><% if (primaryKey.typeUUID && databaseTypeSql) { %>.toString()<% } %>)<% if (testsNeedCsrf) { %>.with(csrf())<% }%>
+                .with(jwtAdminToken())
                 .accept(MediaType.APPLICATION_JSON)
         ).andExpect(status().isNoContent)
         <%_ } _%>
@@ -1505,7 +1458,6 @@ class <%= entityClass %>ResourceIT {
     @Timeout(value = 15, unit = TimeUnit.MINUTES)
     <%_ } _%>
     @Test<%= transactionalAnnotation %>
-    <% if (!reactive) { %>@Throws(Exception::class)<% } %>
     fun search<%= entityClass %>() {
         // Initialize the database
         <%_ if (!primaryKey.derived) { _%>
@@ -1737,118 +1689,5 @@ class <%= entityClass %>ResourceIT {
         private val random: Random = Random()
         private val count: AtomicLong = AtomicLong(random.nextInt().toLong() + ( 2 * Integer.MAX_VALUE ))
     <%_ } _%>
-
-
-
-        <%_ ['DEFAULT_', 'UPDATED_'].forEach((fieldStatus) => { _%>
-
-        /**
-         * Create an <% if (fieldStatus === 'UPDATED_') { %>updated <% } %>entity for this test.
-         *
-         * This is a static method, as tests for other entities might also need it,
-         * if they test an entity which requires the current entity.
-         */
-        @JvmStatic
-        fun create<% if (fieldStatus === 'UPDATED_') { _%>Updated<%_ } %>Entity(<% if (databaseTypeSql) { %>em: EntityManager<% } %>): <%= persistClass %> {
-            <%_
-                const filteredFields = fieldsToTest;
-                if (filteredFields.length === 0) {
-            _%>
-            val <%= persistInstance %> = <%= persistClass %>()
-            <%_  } else { _%>
-            val <%= persistInstance %> = <%= persistClass %>(
-                <%_ if (reactive && databaseTypeSql && primaryKey.typeUUID && !isUsingMapsId) { _%>
-                <%= primaryKey.fields[0].fieldName %> = UUID.randomUUID(),
-                <%_ } _%>
-                <%_
-                    let idx = 0;
-                    for (field of filteredFields) {
-                        const comma = (parseInt(idx, 10) === (filteredFields.length - 1)) ?  '' : ',';
-                        idx++;
-                _%>
-                <%= field.fieldName %> = <%=fieldStatus + field.fieldNameUnderscored.toUpperCase()%><% if ((field.fieldTypeBinary) && !field.blobContentTypeText) { %>,
-                <%= field.fieldName %>ContentType = <%=fieldStatus + field.fieldNameUnderscored.toUpperCase()%>_CONTENT_TYPE<% } %><%= comma %>
-
-                <%_ } _%>
-            )
-            <%_ } _%>
-
-
-            <%_
-            const alreadyGeneratedEntities = []
-            for (relationship of relationships) {
-                const relationshipValidate = relationship.relationshipValidate;
-                const otherEntityName = relationship.otherEntityName;
-                const otherEntityNameCapitalized = relationship.otherEntityNameCapitalized;
-                const relationshipType = relationship.relationshipType;
-                const relationshipName = relationship.relationshipName;
-                const relationshipNamePlural = relationship.relationshipNamePlural;
-                const mapsIdUse = relationship.id;
-                if ((relationshipValidate !== null && relationshipValidate) || mapsIdUse) { _%>
-            // Add required entity
-                <%_ if (alreadyGeneratedEntities.indexOf(otherEntityName) == -1) { _%>
-        <%_ if (relationship.otherEntityUser) { // TODO or other entity has no unique fields _%>
-            val <%= otherEntityName %> = <%= createEntityPrefix %><%= otherEntityNameCapitalized %>ResourceIT.createEntity(<% if (databaseTypeSql) { %>em<% } %>)<%= createEntityPostfix %>
-                <%_ if (databaseTypeSql && !reactive) { _%>
-            em.persist(<%= otherEntityName %>)
-            em.flush()
-                <%_ } _%>
-                <%_ if (databaseTypeMongodb) { _%>
-            <%= otherEntityName %>.<%= primaryKey.name %> = "fixed-id-for-tests"
-                <%_ } _%>
-        <%_ } else { _%>
-            val <%= otherEntityName %>: <%= asEntity(otherEntityNameCapitalized) %>
-            <%_ if (databaseTypeSql && !reactive) { _%>
-                <%_ if (!isUsingMapsId || fieldStatus !== "UPDATED_") { _%>
-            if (findAll(em, <%= asEntity(otherEntityNameCapitalized) %>::class).isEmpty()) {
-                <%_ } _%>
-                <%= otherEntityName %> = <%= createEntityPrefix %><%= otherEntityNameCapitalized %>ResourceIT.create<% if (fieldStatus === 'UPDATED_') { %>Updated<% } %>Entity(<% if (databaseTypeSql) { %>em<% } %>)<%= createEntityPostfix %>
-                em.persist(<%= otherEntityName %>)
-                em.flush()
-                <%_ if (!isUsingMapsId || fieldStatus !== "UPDATED_") { _%>
-            } else {
-                <%= otherEntityName %> = findAll(em, <%= asEntity(otherEntityNameCapitalized) %>::class)[0]
-            }
-                <%_ } _%>
-            <%_ } else { _%>
-            <%= otherEntityName %> = <%= createEntityPrefix %><%= otherEntityNameCapitalized %>ResourceIT.create<% if (fieldStatus === 'UPDATED_') { %>Updated<% } %>Entity(<% if (databaseTypeSql) { %>em<% } %>)<%= createEntityPostfix %>
-            <%_ } _%>
-            <%_ if (databaseTypeMongodb) { _%>
-            <%= otherEntityName %>.<%= primaryKey.name %> = "fixed-id-for-tests"
-            <%_ } _%>
-        <%_ } _%>
-                <%_ } _%>
-                <%_ if (relationship.relationshipManyToMany || relationshipType === 'one-to-many') { _%>
-            <%= persistInstance %>.<%= relationshipNamePlural %>?.add(<%= otherEntityName %>)
-            <%_ } else { _%>
-            <%= persistInstance %>.<%= relationshipName %> = <%= otherEntityName %>
-            <%_ } _%>
-        <%_ alreadyGeneratedEntities.push(otherEntityName) _%>
-        <%_ } } _%>
-            return <%= persistInstance %>
-        }
-        <%_ }); _%>
-
-        <%_ if (databaseTypeSql && reactive) {
-            const alreadyGeneratedDeletionCalls = [];
-        _%>
-        fun deleteEntities(em: EntityManager) {
-            try {
-            <%_ relationships.forEach(function(rel) {
-                if (rel.shouldWriteJoinTable) { _%>
-                    em.deleteAll("<%= rel.joinTable.name %>").block()
-            <%_ }}); _%>
-                    em.deleteAll(<%= persistClass %>::class.java).block()
-            } catch (e: Exception) {
-                // It can fail, if other entities are still referring this - it will be removed later.
-            }
-        <%_ relationships.forEach(function(rel) {
-            if ((rel.relationshipValidate|| rel.id) && !alreadyGeneratedDeletionCalls.includes(rel.otherEntityName)) { _%>
-            <%= rel.otherEntityNameCapitalized %>ResourceIT.deleteEntities(em)
-                <%_ alreadyGeneratedDeletionCalls.push(rel.otherEntityName);
-                }
-            }); _%>
-        }
-        <%_ } _%>
     }
 }

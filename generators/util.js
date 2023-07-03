@@ -14,12 +14,12 @@ const makeKotlinServerFiles = function (files) {
     // add custom files
     const extraDTOs = [
         {
-        file: 'package/service/dto/CreateEntityDTO.java',
+            file: 'package/service/dto/CreateEntityDTO.java',
             renameTo: generator => `${generator.entityAbsoluteFolder}/service/dto/Create${generator.asDto(generator.entityClass)}.java`,
         },
         {
             file: 'package/service/mapper/CreateEntityMapper.java',
-                renameTo: generator => `${generator.entityAbsoluteFolder}/service/mapper/Create${generator.entityClass}Mapper.java`,
+            renameTo: generator => `${generator.entityAbsoluteFolder}/service/mapper/Create${generator.entityClass}Mapper.java`,
         },
         {
             file: 'package/service/dto/UpdateEntityDTO.java',
@@ -30,9 +30,25 @@ const makeKotlinServerFiles = function (files) {
             renameTo: generator => `${generator.entityAbsoluteFolder}/service/mapper/Update${generator.entityClass}Mapper.java`,
         }
     ]
-    files["dtoFiles"][0].templates.push(...extraDTOs)
+    if (files["dtoFiles"] !== undefined) {
+        files["dtoFiles"][0].templates.push(...extraDTOs)
+    }
 
-    const keys = Object.keys(files);
+    const utilTestFiles = [
+        {
+            file: 'package/utils/factory/EntityFactory.java',
+            renameTo: generator => `${generator.entityAbsoluteFolder}/utils/factory/${generator.entityClass}Factory.java`,
+        },
+        {
+            file: 'package/utils/generator/EntityGenerator.java',
+            renameTo: generator => `${generator.entityAbsoluteFolder}/utils/generator/${generator.entityClass}Generator.java`,
+        }
+    ]
+    files["modelTestFiles"][0].templates.pop()
+    files["modelTestFiles"][0].templates.push(...utilTestFiles)
+
+    const keys = Object.keys(files)
+        .filter(key => key.indexOf('dtoTestFiles') === -1);
     const out = {};
 
     keys.forEach(key => {

@@ -20,24 +20,24 @@
 val databaseSizeBeforeUpdate = <%= entityInstance %>Repository.findAll()<%= callListBlock %>.size
 
 // Update the <%= entityInstance %> using partial update
-val partialUpdated<%= persistClass%> = <%= persistClass%>().apply {
-    <%= primaryKey.name %> = <%= persistInstance %>.<%= primaryKey.name %>
+val partialUpdated<%= persistClass%> = Update<%= persistClass%>DTO(
+    <%= primaryKey.name %> = <%= persistInstance %>.<%= primaryKey.name %>,
     <%_ fieldsToUpdate = fields.filter(field => field.includeField) %>
 <%_ if (fluentMethods && fieldsToUpdate.length > 0) { _%>
     <% for (field of fieldsToUpdate) { %>
-        <%= field.fieldName %> = <%= 'UPDATED_' + field.fieldNameUnderscored.toUpperCase() %><% if (field.fieldWithContentType) { %>
-        <%= field.fieldName %>ContentType = <%= 'UPDATED_' + field.fieldNameUnderscored.toUpperCase() %>_CONTENT_TYPE<% } %><% } %>
+        <%= field.fieldName %> = <%= 'UPDATED_' + field.fieldNameUnderscored.toUpperCase() %>,<% if (field.fieldWithContentType) { %>
+        <%= field.fieldName %>ContentType = <%= 'UPDATED_' + field.fieldNameUnderscored.toUpperCase() %>_CONTENT_TYPE,<% } %><% } %>
 <%_ } else { _%>
 <%_ for (field of fieldsToUpdate) { _%>
     <%_ if (field.includeField) { %>
     <%= field.fieldName %> = <%= field.updateWithValue %>
         <%_ if (field.fieldWithContentType) { _%>
-    <%= field.fieldName %>ContentType = <%= field.updateWithValue %>_CONTENT_TYPE
+    <%= field.fieldName %>ContentType = <%= field.updateWithValue %>_CONTENT_TYPE,
         <%_ } _%>
     <%_ } _%>
 <%_ } _%>
 <%_ } _%>
-}
+)
 
 
 <%_ if (reactive) { _%>
@@ -50,7 +50,7 @@ webTestClient
 .expectStatus()
 .isOk
 <%_ } else { _%>
-rest<%= entityClass %>MockMvc.perform(patch(ENTITY_API_URL_ID, partialUpdated<%= persistClass %>.<%= primaryKey.name %>)<% if (testsNeedCsrf) { %>.with(csrf())<% }%>
+rest<%= entityClass %>MockMvc.perform(patch(ENTITY_API_URL_ID, partialUpdated<%= persistClass %>.<%= primaryKey.name %>).with(jwtAdminToken())<% if (testsNeedCsrf) { %>.with(csrf())<% }%>
 .contentType("application/merge-patch+json")
 .content(convertObjectToJsonBytes(<%= 'partialUpdated' + persistClass %>)))
 .andExpect(status().isOk)

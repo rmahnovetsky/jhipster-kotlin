@@ -1,0 +1,52 @@
+package <%= entityAbsolutePackage %>.<%= module%>.utils.generator
+
+import javax.persistence.EntityManager
+import <%= entityAbsolutePackage %>.core.domain.common.hibernate.HibernateConstants
+import <%= entityAbsolutePackage %>.<%= module%>.domain.<%=persistClass%>
+import <%= entityAbsolutePackage %>.<%= module%>.utils.factory.<%=persistClass%>Factory
+import <%= entityAbsolutePackage %>.utils.generator.GeneratorUtils.persist
+
+<%_
+for (relationship of relationships) {
+_%>
+import <%= entityAbsolutePackage %>.<%= relationship.otherEntity.module%>.domain.<%= relationship.otherEntityNameCapitalized %>
+import <%= entityAbsolutePackage %>.<%= relationship.otherEntity.module%>.utils.generator.<%= relationship.otherEntityNameCapitalized %>Generator.generate<%= relationship.otherEntityNameCapitalized %>
+<%_
+}
+_%>
+
+<%_
+const fieldsToTest = fields.filter(field => !field.id && !field.autoGenerate && !field.transient);
+_%>
+object <%= entityClass %>Generator {
+
+fun generate<%= persistClass %>(
+    em: EntityManager,
+    persist: Boolean = false,
+<%_
+        for (relationship of relationships) {
+_%>
+<%_ if (relationship.relationshipManyToMany || relationship.relationshipType === 'one-to-many') { _%>
+    <%= relationship.relationshipName %>s: MutableSet<<%= relationship.otherEntityNameCapitalized %>> = mutableSetOf(generate<%= relationship.otherEntityNameCapitalized %>(em = em, persist = true)),
+<%_ } else { _%>
+    <%= relationship.relationshipName %>: <%= relationship.otherEntityNameCapitalized %> = generate<%= relationship.otherEntityNameCapitalized %>(em = em, persist = true),
+<%_ } _%>
+<%_
+}
+_%>
+): <%= persistClass %> =
+<%= persistClass %>Factory.create<%= persistClass %>(
+<%_
+for (relationship of relationships) {
+_%>
+<%_ if (relationship.relationshipManyToMany || relationship.relationshipType === 'one-to-many') { _%>
+    <%= relationship.relationshipName %>s = <%= relationship.relationshipName %>s,
+<%_ } else { _%>
+    <%= relationship.relationshipName %> = <%= relationship.relationshipName %>,
+<%_ } _%>
+<%_
+}
+_%>
+)
+    .persist(em, persist)
+}

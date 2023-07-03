@@ -1,0 +1,275 @@
+package <%= entityAbsolutePackage %>.<%= module%>.utils.factory
+
+import <%= entityAbsolutePackage %>.core.domain.common.hibernate.HibernateConstants
+import <%= entityAbsolutePackage %>.<%= module%>.domain.<%=persistClass%>
+
+<%_
+for (relationship of relationships) {
+_%>
+import <%= entityAbsolutePackage %>.<%= relationship.otherEntity.module%>.domain.<%= relationship.otherEntityNameCapitalized %>
+import <%= entityAbsolutePackage %>.<%= relationship.otherEntity.module%>.utils.factory.<%= relationship.otherEntityNameCapitalized %>Factory.create<%= relationship.otherEntityNameCapitalized %>
+<%_
+}
+_%>
+
+<%_
+const fieldsToTest = fields.filter(field => !field.id && !field.autoGenerate && !field.transient);
+
+let mapsIdEntity;
+let mapsIdEntityInstance;
+let mapsIdRepoInstance;
+if (isUsingMapsId) {
+mapsIdEntity = mapsIdAssoc.otherEntityNameCapitalized;
+mapsIdEntityInstance =  mapsIdEntity.charAt(0).toLowerCase() + mapsIdEntity.slice(1);
+mapsIdRepoInstance = `${mapsIdEntityInstance}Repository`;
+}
+
+let callBlock = '';
+let callListBlock = '';
+if (reactive) {
+callBlock = ".block()";
+callListBlock = ".collectList().block()";
+}
+let saveMethod = 'save';
+if (!reactive && databaseTypeSql) {
+saveMethod = 'saveAndFlush';
+}
+
+let createEntityPrefix = '';
+let createEntityPostfix = '';
+if (databaseTypeSql && reactive) {
+createEntityPrefix = 'em.insert(';
+createEntityPostfix = ').block()';
+}
+
+let idValue = `${persistInstance}.${primaryKey.name}`;
+if (primaryKey.typeLong) {
+idValue = idValue + '?.toInt()';
+} else if (primaryKey.typeUUID) {
+idValue = idValue + '.toString()';
+}
+let transactionalAnnotation = '';
+if (databaseTypeSql && !reactive) {
+transactionalAnnotation = '\n    @Transactional';
+}
+_%>
+
+object <%= entityClass %>Factory {
+
+<%_ for (field of fieldsToTest) {
+    const defaultValueName = 'DEFAULT_' + field.fieldNameUnderscored.toUpperCase();
+    const updatedValueName = 'UPDATED_' + field.fieldNameUnderscored.toUpperCase();
+    const smallerValueName = 'SMALLER_' + field.fieldNameUnderscored.toUpperCase();
+    const needsSmallerValueName = jpaMetamodelFiltering && isFilterableType(field.fieldType)
+            && (field.fieldTypeNumeric || field.fieldTypeDuration || field.fieldTypeLocalDate || field.fieldTypeZonedDateTime);
+
+    let defaultValue = 1;
+    let updatedValue = 2;
+
+    if (field.fieldValidate) {
+        if (field.fieldValidationMax) {
+            defaultValue = field.fieldValidateRulesMax;
+            updatedValue = parseInt(field.fieldValidateRulesMax) - 1;
+        }
+        if (field.fieldValidationMin) {
+            defaultValue = field.fieldValidateRulesMin;
+            updatedValue = parseInt(field.fieldValidateRulesMin) + 1;
+        }
+        if (field.fieldValidationMinBytes) {
+            defaultValue = field.fieldValidateRulesMinbytes;
+            updatedValue = field.fieldValidateRulesMinbytes;
+        }
+        if (field.fieldValidationMaxBytes) {
+            updatedValue = field.fieldValidateRulesMaxbytes;
+        }
+    }
+
+    const fieldType = field.fieldType;
+    const isEnum = field.fieldIsEnum;
+    let enumValue1;
+    let enumValue2;
+    if (isEnum) {
+        const enumValues = field.enumValues;
+        enumValue1 = enumValues[0];
+        if (enumValues.length > 1) {
+            enumValue2 = enumValues[1];
+        } else {
+            enumValue2 = enumValue1;
+        }
+    }
+
+if (field.fieldTypeString || field.blobContentTypeText) {
+    // Generate Strings, using the min and max string length if they are configured
+    let sampleTextString = "";
+    let updatedTextString = "";
+    let sampleTextLength = 10;
+    if (field.fieldValidateRulesMinlength > sampleTextLength) {
+        sampleTextLength = field.fieldValidateRulesMinlength;
+    }
+    if (field.fieldValidateRulesMaxlength < sampleTextLength) {
+        sampleTextLength = field.fieldValidateRulesMaxlength;
+    }
+    for (let i = 0; i < sampleTextLength; i++) {
+        sampleTextString += "A";
+        updatedTextString += "B";
+    }
+    if (field.fieldValidateRulesPattern !== undefined) {
+        // Generate Strings, using pattern
+        try {
+            const patternRegExp = new RegExp(field.fieldValidateRulesPattern);
+            const randExp = field.createRandexp();
+            // set infinite repetitions max range
+            if (!patternRegExp.test(sampleTextString.replace(/\\"/g, '"').replace(/\\\\/g, '\\'))) {
+                sampleTextString = randExp.gen().replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+            }
+            if (!patternRegExp.test(updatedTextString.replace(/\\"/g, '"').replace(/\\\\/g, '\\'))) {
+                updatedTextString = randExp.gen().replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+            }
+        } catch (error) {
+            log(this.chalkRed('Error generating test value for entity "' + entityClass +
+                    '" field "' + field.fieldName + '" with pattern "' + field.fieldValidateRulesPattern +
+                    '", generating default values for this field. Detailed error message: "' + error.message + '".'));
+        }
+        if (sampleTextString === updatedTextString) {
+            updatedTextString = updatedTextString + "B";
+            log(this.chalkRed('Randomly generated first and second test values for entity "' + entityClass +
+                    '" field "' + field.fieldName + '" with pattern "' + field.fieldValidateRulesPattern +
+                    '" in file "' + entityClass + 'ResourceIT" where equal, added symbol "B" to second value.'));
+        }
+    }
+_%>
+
+private const val <%=defaultValueName %> = "<%-sampleTextString %>"
+private const val <%=updatedValueName %> = "<%-updatedTextString %>"
+<%_ } else if (field.fieldTypeInteger) { _%>
+
+private const val <%=defaultValueName %>: Int = <%= defaultValue %>
+private const val <%=updatedValueName %>: Int = <%= updatedValue %>
+<%_ if (needsSmallerValueName) { _%>
+private const val <%=smallerValueName %>: Int = <%= defaultValue %> - 1
+<%_ } _%>
+<%_ } else if (field.fieldTypeLong) { _%>
+
+private const val <%=defaultValueName %>: Long = <%= defaultValue %>L
+private const val <%=updatedValueName %>: Long = <%= updatedValue %>L
+<%_ if (needsSmallerValueName) { _%>
+private const val <%=smallerValueName %>: Long = <%= defaultValue %>L - 1L
+<%_ } _%>
+<%_ } else if (field.fieldTypeFloat) { _%>
+
+private const val <%=defaultValueName %>: <%=fieldType %> = <%= defaultValue %>F
+private const val <%=updatedValueName %>: <%=fieldType %> = <%= updatedValue %>F
+<%_ if (needsSmallerValueName) { _%>
+private const val <%=smallerValueName %>: <%=fieldType %> = <%= defaultValue %>F - 1F
+<%_ } _%>
+<%_ } else if (field.fieldTypeDouble) { _%>
+
+private const val <%=defaultValueName %>: <%=fieldType %> = <%= defaultValue %>.0
+private const val <%=updatedValueName %>: <%=fieldType %> = <%= updatedValue %>.0
+<%_ if (needsSmallerValueName) { _%>
+private const val <%=smallerValueName %>: <%=fieldType %> = <%= defaultValue %>.0 - 1.0
+<%_ } _%>
+<%_ } else if (field.fieldTypeBigDecimal) { _%>
+
+private val <%=defaultValueName %>: BigDecimal = BigDecimal(<%= defaultValue %>)
+private val <%=updatedValueName %>: BigDecimal = BigDecimal(<%= updatedValue %>)
+<%_ if (needsSmallerValueName) { _%>
+private val <%=smallerValueName %>: BigDecimal = BigDecimal(<%= defaultValue %> - 1)
+<%_ } _%>
+<%_ } else if (field.fieldTypeUUID) { _%>
+
+private val <%=defaultValueName %>: UUID = UUID.randomUUID()
+private val <%=updatedValueName %>: UUID = UUID.randomUUID()
+<%_ } else if (field.fieldTypeLocalDate) { _%>
+
+private val <%=defaultValueName %>: LocalDate = LocalDate.ofEpochDay(0L)
+private val <%=updatedValueName %>: LocalDate = LocalDate.now(ZoneId.systemDefault())
+<%_ if (needsSmallerValueName) { _%>
+private val <%=smallerValueName %>: LocalDate = LocalDate.ofEpochDay(-1L)
+<%_ } _%>
+<%_ } else if (field.fieldTypeInstant) { _%>
+
+private val <%=defaultValueName %>: Instant = Instant.ofEpochMilli(0L)
+private val <%=updatedValueName %>: Instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+<%_ if (needsSmallerValueName) { _%>
+private val <%=smallerValueName %>: Instant = Instant.ofEpochMilli(-1L)
+<%_ } _%>
+<%_ } else if (field.fieldTypeZonedDateTime) { _%>
+
+private val <%=defaultValueName %>: ZonedDateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(0L), ZoneOffset.UTC)
+private val <%=updatedValueName %>: ZonedDateTime = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0)
+<%_ if (needsSmallerValueName) { _%>
+private val <%=smallerValueName %>: ZonedDateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(-1L), ZoneOffset.UTC)
+<%_ } _%>
+<%_ } else if (field.fieldTypeDuration) { _%>
+
+private val <%=defaultValueName %>: Duration = Duration.ofHours(6)
+private val <%=updatedValueName %>: Duration = Duration.ofHours(12)
+<%_ if (needsSmallerValueName) { _%>
+private val <%=smallerValueName %>: Duration = Duration.ofHours(5)
+<%_ } _%>
+<%_ } else if (fieldType === 'Boolean') { _%>
+
+private const val <%=defaultValueName %>: Boolean = false
+private const val <%=updatedValueName %>: Boolean = true
+<%_ } else if ((field.fieldTypeBinary) && !field.blobContentTypeText) { _%>
+
+<%_ if (!databaseTypeCassandra) { _%>
+private val <%=defaultValueName %>: ByteArray = createByteArray(1, "0")
+private val <%=updatedValueName %>: ByteArray = createByteArray(1, "1")
+<%_ } else { _%>
+private val <%=defaultValueName %>: ByteBuffer = ByteBuffer.wrap(createByteArray(1, "0"))
+private val <%=updatedValueName %>: ByteBuffer = ByteBuffer.wrap(createByteArray(1, "1"))
+<%_ } _%>
+private const val <%=defaultValueName %>_CONTENT_TYPE: String = "image/jpg"
+private const val <%=updatedValueName %>_CONTENT_TYPE: String = "image/png"
+<%_ } else if (isEnum) { _%>
+
+private val <%=defaultValueName %>: <%=fieldType %> = <%=fieldType %>.<%=enumValue1.name %>
+private val <%=updatedValueName %>: <%=fieldType %> = <%=fieldType %>.<%=enumValue2.name %>
+<%_ } } _%>
+
+    fun create<%= persistClass %>(
+        id: Long = HibernateConstants.UNSAVED_ID,
+<%_
+for (field of fieldsToTest) {
+_%>
+        <%= field.fieldName %>: <%= field.fieldType %> = DEFAULT_<%=field.fieldNameUnderscored.toUpperCase()%>,
+<%_
+}
+_%>
+<%_
+for (relationship of relationships) {
+_%>
+<%_ if (relationship.relationshipManyToMany || relationship.relationshipType === 'one-to-many') { _%>
+    <%= relationship.relationshipName %>s: MutableSet<<%= relationship.otherEntityNameCapitalized %>> = mutableSetOf(create<%= relationship.otherEntityNameCapitalized %>()),
+<%_ } else { _%>
+    <%= relationship.relationshipName %>: <%= relationship.otherEntityNameCapitalized %> = create<%= relationship.otherEntityNameCapitalized %>(),
+<%_ } _%>
+<%_
+}
+_%>
+    ): <%= persistClass %> =
+        <%= persistClass %>(
+            id = id,
+<%_
+for (field of fieldsToTest) {
+_%>
+        <%= field.fieldName %> = <%= field.fieldName %>,
+<%_
+}
+_%>
+<%_
+for (relationship of relationships) {
+_%>
+<%_ if (relationship.relationshipManyToMany || relationship.relationshipType === 'one-to-many') { _%>
+    <%= relationship.relationshipName %>s = <%= relationship.relationshipName %>s,
+<%_ } else { _%>
+    <%= relationship.relationshipName %> = <%= relationship.relationshipName %>,
+<%_ } _%>
+<%_
+}
+_%>
+    )
+}
+

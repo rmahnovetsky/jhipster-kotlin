@@ -71,8 +71,6 @@ interface <%=entityClass%>Repository : <% if (containsBagRelationships && databa
     <%_ for (const relationship of relationships) { _%>
         <%_ if (relationship.relationshipManyToOne && relationship.otherEntityName === 'user' && databaseTypeSql) { _%>
 
-    @Query("select <%= entityInstanceDbSafe %> from <%= persistClass %> <%= entityInstanceDbSafe %> where <%= entityInstanceDbSafe %>.<%= relationship.relationshipFieldName %>.login = ?#{principal.<% if (authenticationTypeOauth2) { %>preferredUsername<% } else { %>username<% } %>}")
-    fun findBy<%= relationship.relationshipNameCapitalized %>IsCurrentUser(): MutableList<<%= persistClass %>>
     <%_ } } _%>
     <%_ if (implementsEagerLoadApis) { _%>
         <%_ if (databaseTypeSql) { _%>
