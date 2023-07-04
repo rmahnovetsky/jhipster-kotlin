@@ -235,6 +235,7 @@ import <%= packageName %>.domain.enumeration.<%= field.fieldType %>
 <%_ } } _%>
 
 import <%= packageName %>.utils.permission.MvcRequestPermissionTestFactory
+import <%= packageName %>.utils.TestDataCleaner
 
 /**
  * Integration tests for the [<%= entityClass %>Resource] REST controller.
@@ -252,6 +253,9 @@ import <%= packageName %>.utils.permission.MvcRequestPermissionTestFactory
 <%_ } _%>
 @WithMockUser
 class <%= entityClass %>ResourceIT {
+
+    @Autowired
+    private lateinit var testDataCleaner: TestDataCleaner
 
     @Autowired
     private lateinit var mvcRequestPermissionTestFactory: MvcRequestPermissionTestFactory
@@ -342,6 +346,7 @@ class <%= entityClass %>ResourceIT {
 
     @BeforeEach
     fun initTest() {
+        testDataCleaner.removeAllTestData()
         <%_ if (databaseTypeMongodb || databaseTypeCouchbase || databaseTypeCassandra || databaseTypeNeo4j) { _%>
         <%= entityInstance %>Repository.deleteAll()<%= callBlock %>
         <%_ } _%>
