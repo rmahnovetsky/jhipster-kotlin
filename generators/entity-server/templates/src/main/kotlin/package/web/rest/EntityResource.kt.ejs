@@ -47,6 +47,7 @@ import <%= packageName %>.core.service.error.BadRequestAlertException
 import <%= entityAbsolutePackage %>.<%= module %>.service.dto.<%= dtoClass %>
 import <%= entityAbsolutePackage %>.<%= module %>.service.dto.Create<%= dtoClass %>
 import <%= entityAbsolutePackage %>.<%= module %>.service.dto.Update<%= dtoClass %>
+import <%= entityAbsolutePackage %>.<%= module %>.service.dto.PartialUpdate<%= dtoClass %>
 <%_ if (serviceNo) { _%>
 import <%= entityAbsolutePackage %>.<%= module %>.service.mapper.<%= entityClass %>Mapper
 import <%= entityAbsolutePackage %>.<%= module %>.service.mapper.Create<%= entityClass %>Mapper
@@ -145,7 +146,7 @@ _%>
     update<%= entityClass %>Mapper: Update<%= entityClass %>Mapper,
 <%= entityInstance %>Mapper: <%= entityClass %>Mapper,
 
-) : MappableGenericResource<Create<%= entityClass %>DTO, <%= entityClass %>, Update<%= entityClass %>DTO, Update<%= entityClass %>DTO, <%= entityClass %>DTO, Long>(
+) : MappableGenericResource<Create<%= entityClass %>DTO, <%= entityClass %>, PartialUpdate<%= entityClass %>DTO, Update<%= entityClass %>DTO, <%= entityClass %>DTO, Long>(
     repository = repository,
     permissions = permissions,
     permissionChecker = permissionChecker,

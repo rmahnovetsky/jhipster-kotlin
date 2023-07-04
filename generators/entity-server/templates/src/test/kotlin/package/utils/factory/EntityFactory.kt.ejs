@@ -242,7 +242,7 @@ _%>
 for (relationship of relationships) {
 _%>
 <%_ if (relationship.relationshipManyToMany || relationship.relationshipType === 'one-to-many') { _%>
-    <%= relationship.relationshipName %>s: MutableSet<<%= relationship.otherEntityNameCapitalized %>> = mutableSetOf(create<%= relationship.otherEntityNameCapitalized %>()),
+    <%= relationship.relationshipName %>s: MutableSet<<%= relationship.otherEntityNameCapitalized %>> = mutableSetOf(),
 <%_ } else { _%>
     <%= relationship.relationshipName %>: <%= relationship.otherEntityNameCapitalized %> = create<%= relationship.otherEntityNameCapitalized %>(),
 <%_ } _%>

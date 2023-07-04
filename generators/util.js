@@ -26,6 +26,10 @@ const makeKotlinServerFiles = function (files) {
             renameTo: generator => `${generator.entityAbsoluteFolder}/service/dto/Update${generator.asDto(generator.entityClass)}.java`,
         },
         {
+            file: 'package/service/dto/PartialUpdateEntityDTO.java',
+            renameTo: generator => `${generator.entityAbsoluteFolder}/service/dto/PartialUpdate${generator.asDto(generator.entityClass)}.java`,
+        },
+        {
             file: 'package/service/mapper/UpdateEntityMapper.java',
             renameTo: generator => `${generator.entityAbsoluteFolder}/service/mapper/Update${generator.entityClass}Mapper.java`,
         }

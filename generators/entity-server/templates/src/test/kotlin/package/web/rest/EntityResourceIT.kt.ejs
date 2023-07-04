@@ -66,6 +66,9 @@ import <%= packageName %>.IntegrationTest
 import <%= entityAbsolutePackage %>.<%=module%>.domain.<%= persistClass %>
 import <%= entityAbsolutePackage %>.<%=module%>.utils.generator.<%= persistClass %>Generator.generate<%= persistClass %>
 import <%= entityAbsolutePackage %>.utils.jwtAdminToken
+import <%= entityAbsolutePackage %>.utils.permission.AssertAllEndpoints.assertAllEndpointsAreUnauthorised
+import <%= entityAbsolutePackage %>.utils.permission.WithUnauthenticatedMockUser
+import <%= entityAbsolutePackage %>.<%=module%>.utils.factory.<%= persistClass %>Factory
 <%_
     var imported = [];
     for (relationship of relationships) { // import entities in required relationships
@@ -231,6 +234,8 @@ import org.awaitility.Awaitility.await
 import <%= packageName %>.domain.enumeration.<%= field.fieldType %>
 <%_ } } _%>
 
+import <%= packageName %>.utils.permission.MvcRequestPermissionTestFactory
+
 /**
  * Integration tests for the [<%= entityClass %>Resource] REST controller.
  */
@@ -247,6 +252,10 @@ import <%= packageName %>.domain.enumeration.<%= field.fieldType %>
 <%_ } _%>
 @WithMockUser
 class <%= entityClass %>ResourceIT {
+
+    @Autowired
+    private lateinit var mvcRequestPermissionTestFactory: MvcRequestPermissionTestFactory
+
     @Autowired
     private lateinit var <%= entityInstance %>Repository: <%= entityClass %>Repository
     <%_ if (isUsingMapsId&& ( !dtoMapstruct && serviceNo)) { _%>
@@ -1503,6 +1512,17 @@ class <%= entityClass %>ResourceIT {
                                                     if (!field.fieldTypeString) { %>.toString()<% } %>))<%= !reactive ? ')' : '' %><%_ } _%>
     }
 <%_ } _%>
+
+    @WithUnauthenticatedMockUser
+    @Test
+    @Transactional
+    fun `unauthenticated user - should not have access`() {
+        assertAllEndpointsAreUnauthorised(
+            resourceClass = <%= entityClass %>Resource::class,
+            mockMvc = rest<%= entityClass %>MockMvc,
+            dto = <%= entityClass %>Factory.create<%= entityClass %>(),
+        )
+    }
 
     companion object {
         <%_ for (field of fieldsToTest) {
