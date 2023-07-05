@@ -20,7 +20,7 @@
 val databaseSizeBeforeUpdate = <%= entityInstance %>Repository.findAll()<%= callListBlock %>.size
 
 // Update the <%= entityInstance %> using partial update
-val partialUpdated<%= persistClass%> = Update<%= persistClass%>DTO(
+val partialUpdated<%= persistClass%> = PartialUpdate<%= persistClass%>DTO(
     <%= primaryKey.name %> = <%= persistInstance %>.<%= primaryKey.name %>,
     <%_ fieldsToUpdate = fields.filter(field => field.includeField) %>
 <%_ if (fluentMethods && fieldsToUpdate.length > 0) { _%>

@@ -123,7 +123,7 @@ abstract class Create<%= entityClass %>Mapper :
         <%-  [...new Set(mappings3)].join(',') %>
     )
     <%_ } _%>
-    fun to<%= _.upperFirst(mapperName) %>(<%= otherEntity.persistInstance %>: <%- otherEntity.persistClass %>): Long? = <%- otherEntity.persistInstance %>.id
+    fun to<%= _.upperFirst(mapperName) %>(<%= otherEntity.persistInstance %>: <%- otherEntity.persistClass %>): Long = <%- otherEntity.persistInstance %>.id
 
     <%_ if (collection) { _%>
         <%_ const collectionMapperName = otherEntity.entityInstance + _.upperFirst(relatedField.propertyName) + 'Set'; _%>
