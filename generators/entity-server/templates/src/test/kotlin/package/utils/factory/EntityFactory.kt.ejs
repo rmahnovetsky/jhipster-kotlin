@@ -139,94 +139,94 @@ if (field.fieldTypeString || field.blobContentTypeText) {
     }
 _%>
 
-private const val <%=defaultValueName %> = "<%-sampleTextString %>"
-private const val <%=updatedValueName %> = "<%-updatedTextString %>"
+const val <%=defaultValueName %> = "<%-sampleTextString %>"
+const val <%=updatedValueName %> = "<%-updatedTextString %>"
 <%_ } else if (field.fieldTypeInteger) { _%>
 
-private const val <%=defaultValueName %>: Int = <%= defaultValue %>
-private const val <%=updatedValueName %>: Int = <%= updatedValue %>
+const val <%=defaultValueName %>: Int = <%= defaultValue %>
+const val <%=updatedValueName %>: Int = <%= updatedValue %>
 <%_ if (needsSmallerValueName) { _%>
 private const val <%=smallerValueName %>: Int = <%= defaultValue %> - 1
 <%_ } _%>
 <%_ } else if (field.fieldTypeLong) { _%>
 
-private const val <%=defaultValueName %>: Long = <%= defaultValue %>L
-private const val <%=updatedValueName %>: Long = <%= updatedValue %>L
+const val <%=defaultValueName %>: Long = <%= defaultValue %>L
+const val <%=updatedValueName %>: Long = <%= updatedValue %>L
 <%_ if (needsSmallerValueName) { _%>
-private const val <%=smallerValueName %>: Long = <%= defaultValue %>L - 1L
+const val <%=smallerValueName %>: Long = <%= defaultValue %>L - 1L
 <%_ } _%>
 <%_ } else if (field.fieldTypeFloat) { _%>
 
-private const val <%=defaultValueName %>: <%=fieldType %> = <%= defaultValue %>F
-private const val <%=updatedValueName %>: <%=fieldType %> = <%= updatedValue %>F
+const val <%=defaultValueName %>: <%=fieldType %> = <%= defaultValue %>F
+const val <%=updatedValueName %>: <%=fieldType %> = <%= updatedValue %>F
 <%_ if (needsSmallerValueName) { _%>
-private const val <%=smallerValueName %>: <%=fieldType %> = <%= defaultValue %>F - 1F
+const val <%=smallerValueName %>: <%=fieldType %> = <%= defaultValue %>F - 1F
 <%_ } _%>
 <%_ } else if (field.fieldTypeDouble) { _%>
 
-private const val <%=defaultValueName %>: <%=fieldType %> = <%= defaultValue %>.0
-private const val <%=updatedValueName %>: <%=fieldType %> = <%= updatedValue %>.0
+const val <%=defaultValueName %>: <%=fieldType %> = <%= defaultValue %>.0
+const val <%=updatedValueName %>: <%=fieldType %> = <%= updatedValue %>.0
 <%_ if (needsSmallerValueName) { _%>
-private const val <%=smallerValueName %>: <%=fieldType %> = <%= defaultValue %>.0 - 1.0
+const val <%=smallerValueName %>: <%=fieldType %> = <%= defaultValue %>.0 - 1.0
 <%_ } _%>
 <%_ } else if (field.fieldTypeBigDecimal) { _%>
 
-private val <%=defaultValueName %>: BigDecimal = BigDecimal(<%= defaultValue %>)
-private val <%=updatedValueName %>: BigDecimal = BigDecimal(<%= updatedValue %>)
+val <%=defaultValueName %>: BigDecimal = BigDecimal(<%= defaultValue %>)
+val <%=updatedValueName %>: BigDecimal = BigDecimal(<%= updatedValue %>)
 <%_ if (needsSmallerValueName) { _%>
-private val <%=smallerValueName %>: BigDecimal = BigDecimal(<%= defaultValue %> - 1)
+val <%=smallerValueName %>: BigDecimal = BigDecimal(<%= defaultValue %> - 1)
 <%_ } _%>
 <%_ } else if (field.fieldTypeUUID) { _%>
 
-private val <%=defaultValueName %>: UUID = UUID.randomUUID()
-private val <%=updatedValueName %>: UUID = UUID.randomUUID()
+val <%=defaultValueName %>: UUID = UUID.randomUUID()
+val <%=updatedValueName %>: UUID = UUID.randomUUID()
 <%_ } else if (field.fieldTypeLocalDate) { _%>
 
-private val <%=defaultValueName %>: LocalDate = LocalDate.ofEpochDay(0L)
-private val <%=updatedValueName %>: LocalDate = LocalDate.now(ZoneId.systemDefault())
+val <%=defaultValueName %>: LocalDate = LocalDate.ofEpochDay(0L)
+val <%=updatedValueName %>: LocalDate = LocalDate.now(ZoneId.systemDefault())
 <%_ if (needsSmallerValueName) { _%>
-private val <%=smallerValueName %>: LocalDate = LocalDate.ofEpochDay(-1L)
+val <%=smallerValueName %>: LocalDate = LocalDate.ofEpochDay(-1L)
 <%_ } _%>
 <%_ } else if (field.fieldTypeInstant) { _%>
 
-private val <%=defaultValueName %>: Instant = Instant.ofEpochMilli(0L)
-private val <%=updatedValueName %>: Instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+val <%=defaultValueName %>: Instant = Instant.ofEpochMilli(0L)
+val <%=updatedValueName %>: Instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
 <%_ if (needsSmallerValueName) { _%>
-private val <%=smallerValueName %>: Instant = Instant.ofEpochMilli(-1L)
+val <%=smallerValueName %>: Instant = Instant.ofEpochMilli(-1L)
 <%_ } _%>
 <%_ } else if (field.fieldTypeZonedDateTime) { _%>
 
-private val <%=defaultValueName %>: ZonedDateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(0L), ZoneOffset.UTC)
-private val <%=updatedValueName %>: ZonedDateTime = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0)
+val <%=defaultValueName %>: ZonedDateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(0L), ZoneOffset.UTC)
+val <%=updatedValueName %>: ZonedDateTime = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0)
 <%_ if (needsSmallerValueName) { _%>
-private val <%=smallerValueName %>: ZonedDateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(-1L), ZoneOffset.UTC)
+val <%=smallerValueName %>: ZonedDateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(-1L), ZoneOffset.UTC)
 <%_ } _%>
 <%_ } else if (field.fieldTypeDuration) { _%>
 
-private val <%=defaultValueName %>: Duration = Duration.ofHours(6)
-private val <%=updatedValueName %>: Duration = Duration.ofHours(12)
+val <%=defaultValueName %>: Duration = Duration.ofHours(6)
+val <%=updatedValueName %>: Duration = Duration.ofHours(12)
 <%_ if (needsSmallerValueName) { _%>
-private val <%=smallerValueName %>: Duration = Duration.ofHours(5)
+val <%=smallerValueName %>: Duration = Duration.ofHours(5)
 <%_ } _%>
 <%_ } else if (fieldType === 'Boolean') { _%>
 
-private const val <%=defaultValueName %>: Boolean = false
-private const val <%=updatedValueName %>: Boolean = true
+const val <%=defaultValueName %>: Boolean = false
+const val <%=updatedValueName %>: Boolean = true
 <%_ } else if ((field.fieldTypeBinary) && !field.blobContentTypeText) { _%>
 
 <%_ if (!databaseTypeCassandra) { _%>
-private val <%=defaultValueName %>: ByteArray = createByteArray(1, "0")
-private val <%=updatedValueName %>: ByteArray = createByteArray(1, "1")
+val <%=defaultValueName %>: ByteArray = createByteArray(1, "0")
+val <%=updatedValueName %>: ByteArray = createByteArray(1, "1")
 <%_ } else { _%>
-private val <%=defaultValueName %>: ByteBuffer = ByteBuffer.wrap(createByteArray(1, "0"))
-private val <%=updatedValueName %>: ByteBuffer = ByteBuffer.wrap(createByteArray(1, "1"))
+val <%=defaultValueName %>: ByteBuffer = ByteBuffer.wrap(createByteArray(1, "0"))
+val <%=updatedValueName %>: ByteBuffer = ByteBuffer.wrap(createByteArray(1, "1"))
 <%_ } _%>
-private const val <%=defaultValueName %>_CONTENT_TYPE: String = "image/jpg"
-private const val <%=updatedValueName %>_CONTENT_TYPE: String = "image/png"
+const val <%=defaultValueName %>_CONTENT_TYPE: String = "image/jpg"
+const val <%=updatedValueName %>_CONTENT_TYPE: String = "image/png"
 <%_ } else if (isEnum) { _%>
 
-private val <%=defaultValueName %>: <%=fieldType %> = <%=fieldType %>.<%=enumValue1.name %>
-private val <%=updatedValueName %>: <%=fieldType %> = <%=fieldType %>.<%=enumValue2.name %>
+val <%=defaultValueName %>: <%=fieldType %> = <%=fieldType %>.<%=enumValue1.name %>
+val <%=updatedValueName %>: <%=fieldType %> = <%=fieldType %>.<%=enumValue2.name %>
 <%_ } } _%>
 
     fun create<%= persistClass %>(
