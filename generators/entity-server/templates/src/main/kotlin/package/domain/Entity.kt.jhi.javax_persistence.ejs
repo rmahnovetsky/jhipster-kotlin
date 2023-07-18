@@ -105,11 +105,7 @@ import org.hibernate.annotations.Type
       <%_ } _%>
   <%_ } else { -%>
       <%_ if (relationship.ignoreOtherSideProperty) { -%>
-    @JsonIgnoreProperties(value = [
-        <%_ relationship.otherEntity.relationships.forEach(otherRelationship => { _%>
-        "<%= otherRelationship.relationshipReferenceField %>",
-        <%_ }); _%>
-    ], allowSetters = true)
+    @JsonIncludeProperties(value = ["id"])
       <%_ } _%>
       <%_ if (relationship.ownerSide) { -%>
     @OneToOne<% if (relationship.relationshipRequired) { %>(optional = false)<% } %>

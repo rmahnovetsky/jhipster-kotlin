@@ -91,15 +91,15 @@ data class PartialUpdate<%= dtoClass %>(
             let property = '';
 
             if (field && field.blobContentTypeText) {
-                property = `var ${reference.name}: String? = null`;
+                property = `val ${reference.name}: String? = null`;
             } else if (reference.collection && reference.relationship) {
-                property = `var ${reference.name}: MutableSet<${asDto(reference.relationship.otherEntity.entityNameCapitalized)}> = mutableSetOf()`;
+                property = `val ${reference.name}: MutableSet<${asDto(reference.relationship.otherEntity.entityNameCapitalized)}> = mutableSetOf()`;
             } else if (reference.relationship) {
-                property = `var ${reference.name}Id: Long? = null`;
+                property = `val ${reference.name}Id: Long? = null`;
             } else if (reference.type === 'byte[]') {
-                property = `var ${reference.name}: ByteArray? = null`;
+                property = `val ${reference.name}: ByteArray? = null`;
             } else if (reference.type === 'Integer') {
-                property = `var ${reference.name}: Int? = null`;
+                property = `val ${reference.name}: Int? = null`;
             } else {
                 if (reference.name === 'id') {
                     property = `override val ${reference.name}: ${reference.type}`;
@@ -109,7 +109,7 @@ data class PartialUpdate<%= dtoClass %>(
             }
 
             if (reference.field && reference.field.fieldWithContentType) {
-                property += `,\n    var ${reference.name}ContentType: String? = null`;
+                property += `,\n    val ${reference.name}ContentType: String? = null`;
             }
 
             classProperty.push(property);

@@ -57,7 +57,7 @@ import <%= entityAbsolutePackage %>.core.domain.common.IdMarker
 import <%= entityAbsolutePackage %>.core.domain.common.AbstractAuditingEntity
 
 <%_ if (relationshipsContainOtherSideIgnore) { _%>
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.annotation.JsonIncludeProperties
 <%_ } _%>
 <%_ if (!dtoMapstruct && (typeof javadoc !== 'undefined' || importApiModelProperty)) { _%>
 import io.swagger.v3.oas.annotations.media.Schema
@@ -144,29 +144,17 @@ for (relationship of relationships.filter(relationship => !relationship.embedded
     <&- fragments.relationship<%- relationship.relationshipNameCapitalized %>AnnotationSection() -&>
     <%_ if (relationship.relationshipOneToMany) { _%>
     <%_ if (relationship.ignoreOtherSideProperty) { _%>
-    @JsonIgnoreProperties(value = [
-    <%_ relationship.otherEntity.relationships.forEach(otherRelationship => { _%>
-        "<%= otherRelationship.relationshipReferenceField %>",
-    <%_ }); _%>
-    ], allowSetters = true)
+    @JsonIncludeProperties(value = ["id"])
     <%_ } _%>
     var <%= relationship.relationshipFieldNamePlural %>: MutableSet<<%= relationship.otherEntity.persistClass %>>? = mutableSetOf(),
     <%_ } else if (relationship.relationshipManyToOne) { _%>
     <%_ if (relationship.ignoreOtherSideProperty) { _%>
-    @JsonIgnoreProperties(value = [
-    <%_ relationship.otherEntity.relationships.forEach(otherRelationship => { _%>
-        "<%= otherRelationship.relationshipReferenceField %>",
-    <%_ }); _%>
-    ], allowSetters = true)
+    @JsonIncludeProperties(value = ["id"])
     <%_ } _%>
     var <%= relationship.relationshipFieldName %>: <%= relationship.otherEntity.persistClass %>? = null,
     <%_ } else if (relationship.relationshipManyToMany) { _%>
     <%_ if (relationship.ignoreOtherSideProperty) { _%>
-    @JsonIgnoreProperties(value = [
-    <%_ relationship.otherEntity.relationships.forEach(otherRelationship => { _%>
-        "<%= otherRelationship.relationshipReferenceField %>",
-    <%_ }); _%>
-    ], allowSetters = true)
+    @JsonIncludeProperties(value = ["id"])
     <%_ } _%>
     var <%= relationship.relationshipFieldNamePlural %>: MutableSet<<%= relationship.otherEntity.persistClass %>>? = mutableSetOf(),
     <%_ } else { _%>

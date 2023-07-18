@@ -152,7 +152,8 @@ _%>
     permissionChecker = permissionChecker,
     createMapper = create<%= entityClass %>Mapper,
     updateMapper = update<%= entityClass %>Mapper,
-    toDtoMapper = <%= entityInstance %>Mapper
+    toDtoMapper = <%= entityInstance %>Mapper,
+    toPartialMapper = update<%= entityClass %>Mapper
 ) {
 
     companion object {

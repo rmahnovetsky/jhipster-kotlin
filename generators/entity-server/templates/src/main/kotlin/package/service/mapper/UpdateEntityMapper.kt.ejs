@@ -39,6 +39,7 @@ _%>
 import <%= entityAbsolutePackage %>.<%= module %>.domain.<%= entityClass %>
 import <%= entityAbsolutePackage %>.<%= module %>.repository.<%= entityClass %>Repository
 import <%= entityAbsolutePackage %>.<%= module %>.service.dto.Update<%= dtoClass %>
+import <%= entityAbsolutePackage %>.<%= module %>.service.dto.PartialUpdate<%= dtoClass %>
 import <%= entityAbsolutePackage %>.core.service.mapper.ToEntityMapper
 import <%= entityAbsolutePackage %>.core.service.error.BadRequestAlertException
 
@@ -68,7 +69,7 @@ import java.util.UUID;
  */
 @Mapper(componentModel = "spring",unmappedTargetPolicy = ReportingPolicy.IGNORE)
 abstract class Update<%= entityClass %>Mapper :
-    ToEntityMapper<Update<%= dtoClass %>, <%= persistClass %>> {
+    ToEntityMapper<Update<%= dtoClass %>, <%= persistClass %>>, ToPartialMapper<PartialUpdate<%= dtoClass %>, <%= persistClass %>> {
 
     @Autowired
     private lateinit var <%=entityInstance%>Repository: <%=entityClass%>Repository

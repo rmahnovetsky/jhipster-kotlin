@@ -63,7 +63,7 @@ import java.util.UUID;
  */
 @Mapper(componentModel = "spring",unmappedTargetPolicy = ReportingPolicy.IGNORE)
 interface <%= entityClass %>Mapper :
-    ToDtoMapper<<%= dtoClass %>, <%= persistClass %>>, ToPartialMapper<PartialUpdate<%= dtoClass %>, <%= persistClass %>> {
+    ToDtoMapper<<%= dtoClass %>, <%= persistClass %>> {
 
 <%_ if (!embedded) { _%>
     <%_
