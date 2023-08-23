@@ -21,6 +21,17 @@ package <%= entityAbsolutePackage %>.<%= module %>.web.rest
 <%_
 const viaService = !serviceNo;
 _%>
+import org.springdoc.core.converters.models.PageableAsQueryParam
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.enums.ParameterIn
+import org.springframework.data.web.PageableDefault
+import com.turkraft.springfilter.boot.FilterSpecification
+import tech.jhipster.web.util.PaginationUtil.generatePaginationHttpHeaders
+import io.swagger.v3.oas.annotations.media.Schema
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder
+import org.springframework.data.domain.Sort
+import org.springframework.data.domain.Pageable
 <%_ if (!dtoMapstruct || serviceNo) { _%>
 import <%= entityAbsolutePackage %>.<%= module %>.domain.<%= persistClass %>
 <%_ } _%>
@@ -39,15 +50,13 @@ import <%= entityAbsolutePackage %>.<%= module %>.repository.search.<%= entityCl
 import <%= entityAbsolutePackage %>.<%= module %>.repository.UserRepository
 <%_ } _%>
 import <%= packageName %>.core.service.error.BadRequestAlertException
+import <%= entityAbsolutePackage %>.<%= module %>.service.mapper.<%= entityClass %>Mapper
 <%_ if (dtoMapstruct) { _%>
 import <%= entityAbsolutePackage %>.<%= module %>.service.dto.<%= dtoClass %>
 import <%= entityAbsolutePackage %>.<%= module %>.service.dto.Create<%= dtoClass %>
 import <%= entityAbsolutePackage %>.<%= module %>.service.dto.Update<%= dtoClass %>
-<%_ if (serviceNo) { _%>
-import <%= entityAbsolutePackage %>.<%= module %>.service.mapper.<%= entityClass %>Mapper
-import <%= entityAbsolutePackage %>.<%= module %>.service.mapper.Create<%= entityClass %>Mapper
-import <%= entityAbsolutePackage %>.<%= module %>.service.mapper.Update<%= entityClass %>Mapper
-<%_ } } _%>
+import <%= entityAbsolutePackage %>.<%= module %>.service.dto.PartialUpdate<%= dtoClass %>
+<%_  } _%>
 <%_ if (jpaMetamodelFiltering) {  _%>
 import <%= entityAbsolutePackage %>.<%= module %>.service.criteria.<%= entityClass %>Criteria
 import <%= entityAbsolutePackage %>.<%= module %>.service.<%= entityClass %>QueryService
@@ -78,19 +87,9 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 <%_ if (reactive || (!jpaMetamodelFiltering && !paginationNo)) { _%>
 import org.springframework.http.HttpStatus
 <%_ } _%>
-<%_ if (reactive) { _%>
-import org.springframework.http.MediaType
-<%_ } _%>
 import org.springframework.http.ResponseEntity
-<%_ if (databaseTypeSql && !viaService && (!saveUserSnapshot || isUsingMapsId)) { _%>
 import org.springframework.transaction.annotation.Transactional
-<%_ } _%>
 import org.springframework.web.bind.annotation.*
-<%_ if (reactive) { _%>
-import org.springframework.web.server.ResponseStatusException
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
-<%_ } _%>
 
 <%_ if (validation) { _%>
 import javax.validation.Valid
@@ -163,12 +162,6 @@ _%><%- include('../../common/inject_template', {viaService: viaService, construc
     @PostMapping("/<%= entityApiUrl %>")
     fun create<%= entityClass %>(<% if (validation) { %>@Valid <% } %>@RequestBody <%= instanceName %>: Create<%= instanceType %>): <% if (reactive) { %>Mono<<% } %>ResponseEntity<<%= instanceType %>><% if (reactive) { %>><% } %> {
         log.debug("REST request to save <%= entityClass %> : $<%= instanceName %>")
-        if (<%= instanceName %>.<%= primaryKey.name %> != null) {
-            throw BadRequestAlertException(
-                "A new <%= entityInstance %> cannot already have an ID",
-                ENTITY_NAME, "idexists"
-            )
-        }
         <%_ if (saveUserSnapshot) { %>
             <% for (const userRelationship of relationships.filter(rel => rel.otherEntity.builtInUser)) { %>
                 <%_ if (userRelationship.collection) { _%>
@@ -189,7 +182,7 @@ _%><%- include('../../common/inject_template', {viaService: viaService, construc
         <%= instanceName %>.<%= field.fieldName %> = UUID.randomUUID()
             <%_ } _%>
        <%_ } _%>
-<%- include('/partials/save_template', {asEntity, asDto, viaService: viaService, returnDirectly: false, isUsingMapsId: isUsingMapsId, mapsIdAssoc: mapsIdAssoc, isController: true, noReturn: false}); -%>
+<%- include('/partials/save_template', {viaService: viaService, returnDirectly: false, isUsingMapsId: isUsingMapsId, mapsIdAssoc: mapsIdAssoc, isController: true, noReturn: false}); -%>
         <%_ if (reactive) { _%>
             .map { result ->
                 try {
@@ -223,9 +216,6 @@ _%><%- include('../../common/inject_template', {viaService: viaService, construc
         <% if (validation) { %>@Valid <% } %>@RequestBody <%= instanceName %>: Update<%= instanceType %>
     ): <% if (reactive) { %>Mono<<% } %>ResponseEntity<<%= instanceType %>><% if (reactive) { %>><% } %> {
         log.debug("REST request to update <%= entityClass %> : {}, {}", <%= primaryKey.name %>, <%= instanceName %>)
-        if (<%= instanceName %>.<%= primaryKey.name %> == null) {
-            throw BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull")
-        }
 
         if (!Objects.equals(<%= primaryKey.name %>, <%= instanceName %>.<%= primaryKey.name %>)) {
             throw BadRequestAlertException("Invalid ID", ENTITY_NAME, "idinvalid")
@@ -293,12 +283,9 @@ _%><%- include('../../common/inject_template', {viaService: viaService, construc
     @Throws(URISyntaxException::class)
     fun partialUpdate<%= entityClass %>(
         @PathVariable(value = "<%= primaryKey.name %>", required = false) <%= primaryKey.name %>: <%= primaryKey.type %>,
-        <% if (validation) { %>@NotNull <% } %>@RequestBody <%= instanceName %>: Update<%= instanceType %>
+        <% if (validation) { %>@NotNull <% } %>@RequestBody <%= instanceName %>: PartialUpdate<%= instanceType %>
     ): <% if (reactive) { %>Mono<<% } %>ResponseEntity<<%= instanceType %>><% if (reactive) { %>><% } %> {
         log.debug("REST request to partial update <%= entityClass %> partially : {}, {}", <%= primaryKey.name %>, <%= instanceName %>)
-        if (<%= instanceName %>.<%= primaryKey.name %> == null) {
-            throw BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull")
-        }
         if (!Objects.equals(<%= primaryKey.name %>, <%= instanceName %>.<%= primaryKey.name %>)) {
             throw BadRequestAlertException("Invalid ID", ENTITY_NAME, "idinvalid")
         }
@@ -329,7 +316,7 @@ _%><%- include('../../common/inject_template', {viaService: viaService, construc
                 <%_ } _%>
             <% } %>
         <%_ } _%>
-<%- include('../../common/patch_template', {asEntity, asDto, isService: false, viaService: viaService}); -%>
+<%- include('../../common/patch_template', {isService: false, viaService: viaService}); -%>
             <%_ if (reactive) { _%>
         result
             .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.NOT_FOUND)))
@@ -350,41 +337,29 @@ _%><%- include('../../common/inject_template', {viaService: viaService, construc
     /**
      * `GET  /<%= entityApiUrl %>` : get all the <%= entityInstancePlural %>.
      *
-    <%_ if (!paginationNo) { _%>
-     * @param pageable the pagination information.
-        <%_ if (reactive) { _%>
-     * @param request a [ServerHttpRequest] request.
-        <%_ } _%>
-    <%_ } _%>
-    <%_ if (!jpaMetamodelFiltering && implementsEagerLoadApis) { _%>
-     * @param eagerload flag to eager load entities from relationships (This is applicable for many-to-many).<% } if (jpaMetamodelFiltering) { %>
-     * @param criteria the criteria which the requested entities should match.<% } else if (fieldsContainNoOwnerOneToOne) { %>
-     * @param filter the filter of the request.<% } %>
-     * @return the [ResponseEntity] with status `200 (OK)` and the list of <%= entityInstancePlural %> in body.
      */
-    @GetMapping("/<%= entityApiUrl %>")<%_ if (databaseTypeSql && isUsingMapsId&& !viaService) { %>
-    @Transactional(readOnly = true)<%_ } _%>
-    <%- include('../../common/get_all_template', {asEntity, asDto, viaService}); -%>
-
-    <%_ if (reactive && paginationNo) { _%>
-    /**
-     * `GET  /<%= entityApiUrl %>` : get all the <%= entityInstancePlural %> as a stream.
-     * @return the [Flux] of <%= entityInstancePlural %>.
-     */
-    @GetMapping(value = ["/<%= entityApiUrl %>"], produces = [MediaType.APPLICATION_NDJSON_VALUE])
-    <%_ if (databaseTypeSql && isUsingMapsId&& !viaService) { _%>
+    @Operation(
+        parameters = [
+            Parameter(
+                name = "filter", `in` = ParameterIn.QUERY, schema = Schema(type = "string"),
+                example = "see https://github.com/turkraft/springfilter/tree/2.x.x for examples"
+            )
+        ]
+    )
+    @PageableAsQueryParam
+    @GetMapping("/<%= entityApiUrl %>")
     @Transactional(readOnly = true)
-    <%_ } _%>
-    fun getAll<%= entityClassPlural %>AsStream(): Flux<<%= instanceType %>> {
-        log.debug("REST request to get all <%= entityClassPlural %> as a stream")
-        <%_ if (viaService) { _%>
-        return <%= entityInstance %>Service.findAll()
-        <%_ } else { _%>
-        return <%= entityInstance %>Repository.findAll()<%_ if (dtoMapstruct) { _%>.map(<%= entityToDtoReference %>)<%_ } _%>
-        <%_ } _%>
+    fun search(
+        @Parameter(hidden = true) @RequestParam(required = false) filter: String?,
+        @Parameter(hidden = true) @PageableDefault(page = 0, size = 20, sort = ["id"], direction = Sort.Direction.ASC) pageable: Pageable
+    ): ResponseEntity<List<<%= dtoClass %>>> {
+        val page = <%= entityInstance %>Repository.findAll(FilterSpecification(filter ?: ""), pageable)
+        val headers = generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page)
+        return ResponseEntity.ok().headers(headers).body(<%=mapper%>.toDto(page.content))
     }
 
-    <%_ } _%>
+
+
     /**
      * `GET  /<%= entityApiUrl %>/:id` : get the "id" <%= entityInstance %>.
      *
@@ -396,7 +371,7 @@ _%><%- include('../../common/inject_template', {viaService: viaService, construc
     @Transactional(readOnly = true)
     <%_ } _%>
     fun get<%= entityClass %>(@PathVariable id: <%= primaryKey.type %>): <% if (reactive) { %>Mono<<% } %>ResponseEntity<<%= instanceType %>><% if (reactive) { %>><% } %> {
-        log.debug("REST request to get <%= entityClass %> : $id")<%- include('../../common/get_template', {asEntity, asDto, viaService, returnDirectly:false, implementsEagerLoadApis}); -%>
+        log.debug("REST request to get <%= entityClass %> : $id")<%- include('../../common/get_template', {viaService, returnDirectly:false, implementsEagerLoadApis}); -%>
         return ResponseUtil.wrapOrNotFound(<%= instanceName %>)
     }
 <%_ if (!readOnly) { _%>
@@ -441,6 +416,6 @@ _%><%- include('../../common/inject_template', {viaService: viaService, construc
     <%_ } _%>
      * @return the result of the search.
      */
-    @GetMapping("/_search/<%= entityApiUrl %>")<%- include('../../common/search_template', {asEntity, asDto, viaService}); -%>
+    @GetMapping("/_search/<%= entityApiUrl %>")<%- include('../../common/search_template', {viaService}); -%>
 <%_ } _%>
 }

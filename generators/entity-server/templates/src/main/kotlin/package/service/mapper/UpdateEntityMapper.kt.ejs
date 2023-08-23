@@ -42,6 +42,7 @@ import <%= entityAbsolutePackage %>.<%= module %>.service.dto.Update<%= dtoClass
 import <%= entityAbsolutePackage %>.<%= module %>.service.dto.PartialUpdate<%= dtoClass %>
 import <%= entityAbsolutePackage %>.core.service.mapper.ToEntityMapper
 import <%= entityAbsolutePackage %>.core.service.error.BadRequestAlertException
+import <%= entityAbsolutePackage %>.core.service.mapper.ToPartialMapper
 
 <%_ for (const otherEntity of _.uniq(dtoRelationships.map(relationship => relationship.otherEntity).filter(otherEntity => otherEntity !== entity))) { _%>
     import <%= otherEntity.entityAbsolutePackage || entityAbsolutePackage %>.<%= otherEntity.module || 'user' %>.domain.<%= otherEntity.entityClass %>

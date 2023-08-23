@@ -1,0 +1,171 @@
+<%#
+ Copyright 2013-2023 the original author or authors from the JHipster project.
+
+ This file is part of the JHipster project, see https://www.jhipster.tech/
+ for more information.
+
+ Licensed under the Apache License, Version 2.0 (the "
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-%>
+package <%= entityAbsolutePackage %>.<%= module %>.web.rest
+
+import org.springframework.security.access.prepost.PreAuthorize
+import <%= entityAbsolutePackage %>.core.security.PermissionChecker
+import <%= entityAbsolutePackage %>.core.web.rest.common.GenericResourcePermissions
+import <%= entityAbsolutePackage %>.core.web.rest.common.MappableGenericResource
+<%_
+const viaService = !serviceNo;
+_%>
+<%_ if (!dtoMapstruct || serviceNo) { _%>
+import <%= entityAbsolutePackage %>.<%= module %>.domain.<%= persistClass %>
+<%_ } _%>
+import <%= entityAbsolutePackage %>.<%= module %>.repository.<%= entityClass %>Repository
+<%_ if (!serviceNo) { _%>
+import <%= entityAbsolutePackage %>.<%= module %>.service.<%= entityClass %>Service
+<%_ } else { _%>
+    <%_ if (isUsingMapsId) { _%>
+import <%= entityAbsolutePackage %>.<%= module %>.repository.<%= mapsIdAssoc.otherEntityNameCapitalized %>Repository
+    <%_ } _%>
+    <%_ if (searchEngineElasticsearch) { _%>
+import <%= entityAbsolutePackage %>.<%= module %>.repository.search.<%= entityClass %>SearchRepository
+    <%_ } _%>
+<%_ } _%>
+<%_ if (saveUserSnapshot) { _%>
+import <%= entityAbsolutePackage %>.<%= module %>.repository.UserRepository
+<%_ } _%>
+import <%= packageName %>.core.service.error.BadRequestAlertException
+<%_ if (dtoMapstruct) { _%>
+import <%= entityAbsolutePackage %>.<%= module %>.service.dto.<%= dtoClass %>
+import <%= entityAbsolutePackage %>.<%= module %>.service.dto.Create<%= dtoClass %>
+import <%= entityAbsolutePackage %>.<%= module %>.service.dto.Update<%= dtoClass %>
+import <%= entityAbsolutePackage %>.<%= module %>.service.dto.PartialUpdate<%= dtoClass %>
+<%_ if (serviceNo) { _%>
+import <%= entityAbsolutePackage %>.<%= module %>.service.mapper.<%= entityClass %>Mapper
+import <%= entityAbsolutePackage %>.<%= module %>.service.mapper.Create<%= entityClass %>Mapper
+import <%= entityAbsolutePackage %>.<%= module %>.service.mapper.Update<%= entityClass %>Mapper
+<%_ } } _%>
+<%_ if (jpaMetamodelFiltering) {  _%>
+import <%= entityAbsolutePackage %>.<%= module %>.service.criteria.<%= entityClass %>Criteria
+import <%= entityAbsolutePackage %>.<%= module %>.service.<%= entityClass %>QueryService
+<%_ } _%>
+
+import tech.jhipster.web.util.HeaderUtil
+<%_ if (!paginationNo) { _%>
+import tech.jhipster.web.util.PaginationUtil
+<%_ } _%>
+import tech.jhipster.web.util.<% if (reactive) { %>reactive.<% } %>ResponseUtil
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
+<%_ if (!paginationNo) { _%>
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
+    <%_ if (reactive) { _%>
+import org.springframework.data.domain.PageImpl
+    <%_ } _%>
+    <%_ if (reactive) { _%>
+import org.springframework.http.server.reactive.ServerHttpRequest
+    <%_ } _%>
+    <%_ if (reactive) { _%>
+import org.springframework.web.util.UriComponentsBuilder
+    <%_ } else { _%>
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder
+    <%_ } _%>
+<%_ } _%>
+<%_ if (reactive || (!jpaMetamodelFiltering && !paginationNo)) { _%>
+import org.springframework.http.HttpStatus
+<%_ } _%>
+<%_ if (reactive) { _%>
+import org.springframework.http.MediaType
+<%_ } _%>
+import org.springframework.http.ResponseEntity
+<%_ if (databaseTypeSql && !viaService && (!saveUserSnapshot || isUsingMapsId)) { _%>
+import org.springframework.transaction.annotation.Transactional
+<%_ } _%>
+import org.springframework.web.bind.annotation.*
+<%_ if (reactive) { _%>
+import org.springframework.web.server.ResponseStatusException
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
+<%_ } _%>
+
+<%_ if (validation) { _%>
+import javax.validation.Valid
+import javax.validation.constraints.NotNull
+<%_ } _%>
+import java.net.URI
+import java.net.URISyntaxException
+import java.util.Objects
+<%_ if (primaryKey.hasUUID) { _%>
+import java.util.UUID
+<%_ } _%>
+<%_ if ((searchEngine !== false || fieldsContainNoOwnerOneToOne) && !reactive) { _%>
+    <%_ if (!viaService) { _%>
+import java.util.stream.Collectors
+    <%_ } _%>
+    <%_ if (!databaseTypeSql || !reactive) { _%>
+import java.util.stream.StreamSupport
+    <%_ } _%>
+<%_ } _%>
+<%_ if (searchEngineElasticsearch && !reactive) { _%>
+import org.elasticsearch.index.query.QueryBuilders.queryStringQuery
+<%_ } _%>
+<%_ if (!readOnly) { _%>
+<%_
+let entityName = entityInstance;
+if (clientRootFolder && !skipUiGrouping) {
+    entityName = _.camelCase(`${clientRootFolder}${entityClass}`)
+}
+_%>
+
+<%_ } _%>
+/**
+ * REST controller for managing [<%= entityAbsolutePackage %>.domain.<%= persistClass %>].
+ */
+@PreAuthorize("denyAll()")
+@RestController
+@RequestMapping("/api/<%= entityApiUrl %>")
+class <%= entityClass %>Resource(
+<%_
+    const instanceType = restClass;
+    const instanceName = restInstance;
+    const mapper = entityInstance  + 'Mapper';
+    const entityToDtoReference = mapper + '::' + 'toDto';
+_%>
+    repository: <%= entityClass %>Repository,
+    permissionChecker: PermissionChecker,
+    create<%= entityClass %>Mapper: Create<%= entityClass %>Mapper,
+    update<%= entityClass %>Mapper: Update<%= entityClass %>Mapper,
+<%= entityInstance %>Mapper: <%= entityClass %>Mapper,
+
+) : MappableGenericResource<Create<%= entityClass %>DTO, <%= entityClass %>, PartialUpdate<%= entityClass %>DTO, Update<%= entityClass %>DTO, <%= entityClass %>DTO, Long>(
+    repository = repository,
+    permissions = permissions,
+    permissionChecker = permissionChecker,
+    createMapper = create<%= entityClass %>Mapper,
+    updateMapper = update<%= entityClass %>Mapper,
+    toDtoMapper = <%= entityInstance %>Mapper,
+    toPartialMapper = update<%= entityClass %>Mapper
+) {
+
+    companion object {
+        val permissions = GenericResourcePermissions(
+            search = "hasPermission('Company', 'read') or hasPermission('Site', 'read')",
+            get = "hasPermission('Company', 'read') or hasPermission('Site', 'read')",
+            update = "(hasPermission('*', 'Company', 'read') and hasPermission('*', 'Company', 'edit')) or hasPermission(authentication.name, 'User', 'edit')",
+            partialUpdate = "(hasPermission('*', 'Company', 'read') and hasPermission('*', 'Company', 'edit')) or hasPermission(authentication.name, 'User', 'edit')",
+            count = "hasPermission('Company', 'read') or hasPermission('Site', 'read')",
+            create = "(hasPermission('*', 'Company', 'read') and hasPermission('*', 'Company', 'edit')) or hasPermission(authentication.name, 'User', 'edit')",
+            delete = "(hasPermission('*', 'Company', 'read') and hasPermission('*', 'Company', 'edit')) or hasPermission(authentication.name, 'User', 'edit')",
+        )
+    }
+
+}

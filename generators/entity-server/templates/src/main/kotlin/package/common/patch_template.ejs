@@ -29,7 +29,7 @@ const mapper = entityInstance  + 'Mapper';
 <%_ } else { %>
          <%- returnPrefix %> <%= entityInstance %>Repository.findById(<%= instanceName %>.<%= primaryKey.name %>)
             .map {
-            <%_ if (dtoMapstruct) { %><%= mapper %>.partialUpdate(it, <%= instanceName %>)<%_ } else { %>
+            <%_ if (dtoMapstruct) { %>update<%= mapper %>.partialUpdate(it, <%= instanceName %>)<%_ } else { %>
             <%_ for (const field of fields.filter(field => !field.id && !field.transient)) { _%>
                   if (<%= instanceName %>.<%= field.fieldName %>!= null) {
                      it.<%= field.fieldName %> = <%= instanceName %>.<%= field.fieldName %>

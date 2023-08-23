@@ -51,6 +51,15 @@ const makeKotlinServerFiles = function (files) {
     files["modelTestFiles"][0].templates.pop()
     files["modelTestFiles"][0].templates.push(...utilTestFiles)
 
+    // console.log(files.restFiles[0].templates)
+    // renameTo: generator => {
+    //     console.log("RAFFF!!")
+    //     console.log(generator.options.context.serviceNo)
+    //     if (generator.options.context.serviceNo)
+    //         return `${generator.entityAbsoluteFolder}/service/dto/Create${generator.asDto(generator.entityClass)}.java`
+    //     else
+    //         return `${generator.entityAbsoluteFolder}/service/dto/Create${generator.asDto(generator.entityClass)}.java`
+    // },
     const keys = Object.keys(files)
         .filter(key => key.indexOf('dtoTestFiles') === -1);
     const out = {};
