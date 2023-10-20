@@ -61,6 +61,11 @@ _%>
 <%_ if (entityAbsolutePackage !== packageName) { _%>
 import <%= packageName %>.web.rest.*
 <% } %>
+<%_ for (field of fieldsToTest) { _%>
+import <%= entityAbsolutePackage %>.<%=module%>.utils.factory.<%= persistClass %>Factory.<%='DEFAULT_' + field.fieldNameUnderscored.toUpperCase()%>
+import <%= entityAbsolutePackage %>.<%=module%>.utils.factory.<%= persistClass %>Factory.<%='UPDATED_' + field.fieldNameUnderscored.toUpperCase()%>
+<% } %>
+
 import <%= entityAbsolutePackage %>.web.rest.convertObjectToJsonBytes
 import <%= packageName %>.IntegrationTest
 import <%= entityAbsolutePackage %>.<%=module%>.domain.<%= persistClass %>
@@ -99,6 +104,7 @@ import <%= entityAbsolutePackage %>.<%=module%>.service.<%= entityClass %>Servic
 <%_ } _%>
 <%_ if (dtoMapstruct) { _%>
 import <%= entityAbsolutePackage %>.<%=module%>.service.dto.<%= dtoClass %>
+import <%= entityAbsolutePackage %>.<%=module%>.service.dto.PartialUpdate<%= dtoClass %>
 import <%= entityAbsolutePackage %>.<%=module%>.service.dto.Update<%= dtoClass %>
 import <%= entityAbsolutePackage %>.<%=module%>.service.dto.Create<%= dtoClass %>
 import <%= entityAbsolutePackage %>.<%=module%>.service.mapper.<%= entityClass %>Mapper
